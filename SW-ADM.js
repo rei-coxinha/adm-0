@@ -50,8 +50,17 @@ self.addEventListener("push", event => {
 
     console.log("[SW-ADM] 📝 Dados extraídos → titulo:", titulo, "| mensagem:", mensagem, "| url:", url);
 
-    // Tag única por notificação: garante que uma NÃO substitua a outra
-    const tagUnica = "sw-adm-" + Date.now() + "-" + Math.random().toString(36).slice(2, 8);
+    // Tag determinística: se o MESMO Push for processado mais de uma vez,
+    // a segunda tentativa atualiza a mesma notificação em vez de criar outra.
+    // Se o backend fornecer um id, ele será usado; caso contrário usamos o conteúdo.
+    const identificador = notificacao.id || notificacao.notification_id ||
+      `${titulo}|${mensagem}|${url}`;
+    let hash = 2166136261;
+    for (let i = 0; i < identificador.length; i++) {
+      hash ^= identificador.charCodeAt(i);
+      hash = Math.imul(hash, 16777619);
+    }
+    const tagUnica = "sw-adm-" + (hash >>> 0).toString(36);
 
     console.log("[SW-ADM] ⏳ Chamando showNotification()... tag:", tagUnica);
 
@@ -60,8 +69,8 @@ self.addEventListener("push", event => {
       icon: "/icon-192.png",
       badge: "/icon-192.png",
       tag: tagUnica,
-      renotify: true,
-      data: { url }
+      renotify: false,
+      data: { url, notificationId: notificacao.id || notificacao.notification_id || null }
     });
 
     console.log("[SW-ADM] ✅ showNotification() executado com sucesso para tag:", tagUnica);

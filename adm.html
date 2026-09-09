@@ -341,51 +341,53 @@ async function executarFluxoPush() {
         console.log('[PUSH] ✅ Permissão já concedida.');
     }
 
-    // PASSO 4 — Descartar subscription antiga (se houver) e criar uma nova, vinculada ao SW ATUAL
+    // PASSO 4 — Reaproveitar a subscription existente e identificar este aparelho
+    // IMPORTANTE: não fazemos unsubscribe() a cada abertura do ADM. Isso evita
+    // criar endpoints novos e deixar subscriptions antigas no banco.
     try {
         console.log('[PUSH][DIAG] 🔑 VAPID_PUBLIC_KEY usada pelo ADM:', VAPID_PUBLIC_KEY);
         console.log('[PUSH][DIAG] ⏳ Chamando swRegistration.pushManager.getSubscription()...');
-        let subAntiga = await swRegistration.pushManager.getSubscription();
-        let endpointAntigo = null;
+        let sub = await swRegistration.pushManager.getSubscription();
 
-        if (subAntiga) {
-            endpointAntigo = subAntiga.endpoint;
-            console.log('[PUSH][DIAG] ℹ️ Subscription existente encontrada. endpoint:', endpointAntigo);
-            console.log('[PUSH][DIAG] 🗑️ Descartando subscription antiga para garantir vínculo com o SW atual...');
-            await subAntiga.unsubscribe();
+        if (sub) {
+            console.log('[PUSH][DIAG] ✅ Subscription existente encontrada — será reaproveitada.');
         } else {
-            console.log('[PUSH][DIAG] ℹ️ Nenhuma subscription anterior encontrada neste registration.');
+            console.log('[PUSH][DIAG] ℹ️ Nenhuma subscription anterior encontrada — criando uma nova.');
+            sub = await swRegistration.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
+            });
+            console.log('[PUSH] ✅ Nova PushSubscription criada.');
         }
-
-        console.log('[PUSH][DIAG] ⏳ Criando nova subscription no SW ativo...');
-        const sub = await swRegistration.pushManager.subscribe({
-            userVisibleOnly: true,
-            applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
-        });
-        console.log('[PUSH] ✅ Nova PushSubscription criada.');
 
         const subJSON = sub.toJSON();
-        console.log('[PUSH][DIAG] 📋 endpoint (novo):', subJSON.endpoint);
+        console.log('[PUSH][DIAG] 📋 endpoint:', subJSON.endpoint);
         console.log('[PUSH][DIAG] 📋 p256dh:', subJSON.keys?.p256dh || 'AUSENTE');
         console.log('[PUSH][DIAG] 📋 auth:', subJSON.keys?.auth || 'AUSENTE');
-        if (endpointAntigo) {
-            console.log('[PUSH][DIAG] 🔄 endpoint mudou?', endpointAntigo !== subJSON.endpoint ? 'SIM — endpoint antigo era diferente' : 'NÃO — mesmo endpoint de antes');
-        }
 
         if (!subJSON.endpoint || !subJSON.keys?.p256dh || !subJSON.keys?.auth) {
             console.error('[PUSH] ❌ Subscription INCOMPLETA — faltam chaves.', JSON.stringify(subJSON));
             return;
         }
 
-        // Remove do Supabase somente a linha do endpoint antigo (se existia e mudou) — não mexe em outros dispositivos
-        if (endpointAntigo && endpointAntigo !== subJSON.endpoint) {
-            console.log('[PUSH][DIAG] 🗑️ Removendo endpoint antigo de web_push_subscriptions...');
-            const delResp = await fetch(`${PUSH_SUPA_URL}/rest/v1/web_push_subscriptions?endpoint=eq.${encodeURIComponent(endpointAntigo)}`, {
-                method: 'DELETE',
-                headers: { 'apikey': PUSH_SUPA_KEY, 'Authorization': 'Bearer ' + PUSH_SUPA_KEY }
-            });
-            console.log('[PUSH][DIAG] 🗑️ Status da remoção do endpoint antigo:', delResp.status);
+        // ID estável deste navegador/aparelho. Assim, ao reabrir o ADM,
+        // atualizamos a mesma inscrição em vez de acumular outra.
+        let deviceId = localStorage.getItem('adm_push_device_id');
+        if (!deviceId) {
+            deviceId = (crypto.randomUUID ? crypto.randomUUID() :
+                'adm-' + Date.now() + '-' + Math.random().toString(36).slice(2));
+            localStorage.setItem('adm_push_device_id', deviceId);
         }
+        console.log('[PUSH][DIAG] 📱 device_id:', deviceId);
+
+        // Remove somente registros antigos deste MESMO aparelho.
+        // Outros aparelhos ADM continuam cadastrados normalmente.
+        const delUrl = `${PUSH_SUPA_URL}/rest/v1/web_push_subscriptions?phone=eq.ADM&destinatario=eq.adm&device_id=eq.${encodeURIComponent(deviceId)}`;
+        const delResp = await fetch(delUrl, {
+            method: 'DELETE',
+            headers: { 'apikey': PUSH_SUPA_KEY, 'Authorization': 'Bearer ' + PUSH_SUPA_KEY }
+        });
+        console.log('[PUSH][DIAG] 🧹 Limpeza da inscrição deste aparelho:', delResp.status);
 
         // PASSO 5 — Salvar em web_push_subscriptions
         console.log('[PUSH] ⏳ Salvando em public.web_push_subscriptions...');
@@ -396,6 +398,7 @@ async function executarFluxoPush() {
             endpoint: subJSON.endpoint,
             p256dh: subJSON.keys.p256dh,
             auth: subJSON.keys.auth,
+            device_id: deviceId,
             updated_at: new Date().toISOString()
         };
         console.log('[PUSH] 📦 Payload:', JSON.stringify(payload));
