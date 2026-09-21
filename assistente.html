@@ -637,20 +637,33 @@
     if (!currentPhone) return;
     var novoEstado = !pausaMap[currentPhone];
     btnPausa.disabled = true;
-    fetch(BACKEND_URL + "/admin/pausa", {
+    var urlPausa = BACKEND_URL + "/admin/pausa";
+    var hdrs = adminHeaders();
+    alert("Tentando:\n" + urlPausa + "\nAuth: " + (hdrs["Authorization"] ? "sim" : "nao"));
+    fetch(urlPausa, {
       method: "POST",
-      headers: adminHeaders(),
+      headers: hdrs,
       body: JSON.stringify({ phone: currentPhone, pausado: novoEstado })
     })
-      .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
+      .then(function (r) {
+        var status = r.status;
+        return r.text().then(function (txt) {
+          var json = null;
+          try { json = JSON.parse(txt); } catch(e) {}
+          if (!r.ok) {
+            var detalhe = (json && (json.erro || json.error || json.message)) || txt || "sem corpo";
+            throw new Error("HTTP " + status + "\n" + detalhe);
+          }
+          return json;
+        });
+      })
       .then(function () {
         pausaMap[currentPhone] = novoEstado;
         atualizarUiPausa(currentPhone);
-        // re-renderiza as mensagens pra mostrar/esconder os botões "Executar"
         carregarMensagens(currentPhone, true);
       })
       .catch(function (err) {
-        alert("Não consegui mudar o status: " + (err.message || err));
+        alert("ERRO:\n" + urlPausa + "\n" + (err.message || err));
       })
       .then(function () { btnPausa.disabled = false; });
   };
