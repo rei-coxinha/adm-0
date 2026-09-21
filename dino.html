@@ -3,2398 +3,594 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-<title>𝕕𝕚𝕟𝕠 𝕚.𝕒</title>
+<title>Conversas — Rei da Coxinha</title>
 <meta name="theme-color" content="#0B141A">
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
   html, body { height: 100%; overflow: hidden; }
   body { background: #0B141A; font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Roboto, 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; }
-  #app { width: 100%; max-width: 480px; height: 100dvh; display: flex; flex-direction: column; position: relative; background: #0B141A; }
-  #header { background: #111B21; padding: 10px 16px; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid #2A3942; flex-shrink: 0; z-index: 10; }
-  .header-avatar { width: 40px; height: 40px; border-radius: 50%; background: linear-gradient(135deg, #c75b24, #8B3E17); display: flex; align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; position: relative; }
-  .status-dot { position: absolute; bottom: 1px; right: 1px; width: 10px; height: 10px; border-radius: 50%; background: #25D366; border: 2px solid #111B21; transition: background 0.3s; }
-  .header-info { flex: 1; }
-  .header-name { color: #E9EDEF; font-weight: 600; font-size: 15px; }
-  .header-status { color: #25D366; font-size: 12px; }
-  #wallpaper { position: absolute; inset: 61px 0 64px; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events: none; z-index: 0; }
-  #messages { flex: 1; overflow-y: auto; padding: 8px 0; display: flex; flex-direction: column; position: relative; z-index: 1; }
-  #messages::-webkit-scrollbar { width: 4px; }
-  #messages::-webkit-scrollbar-thumb { background: #2A3942; border-radius: 4px; }
-  .date-pill { display: flex; justify-content: center; margin: 6px 0 8px; }
-  .date-pill span { background: #1E2D36; border-radius: 8px; padding: 4px 10px; color: #8696A0; font-size: 11.5px; }
-  .msg-row { display: flex; align-items: flex-end; margin-bottom: 2px; animation: fadeUp .18s ease; }
-  .msg-row.user { justify-content: flex-end; padding-left: 52px; padding-right: 8px; }
-  .msg-row.bot  { justify-content: flex-start; padding-right: 52px; padding-left: 8px; }
-  .bubble { padding: 6px 7px 4px 9px; max-width: 100%; position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,.36); word-wrap: break-word; }
-  .bubble.bot  { background: #202C33; border-radius: 0 7.5px 7.5px 7.5px; }
-  .bubble.bot::before { content: ""; position: absolute; top: 0; left: -8px; border-style: solid; border-width: 0 9px 9px 0; border-color: transparent #202C33 transparent transparent; }
-  .bubble.user { background: #005C4B; border-radius: 7.5px 0 7.5px 7.5px; }
-  .bubble.user::after { content: ""; position: absolute; top: 0; right: -8px; border-style: solid; border-width: 9px 9px 0 0; border-color: #005C4B transparent transparent transparent; }
-  .bubble-text { color: #E9EDEF; font-size: 15px; line-height: 21px; word-break: break-word; white-space: pre-wrap; }
-  .bubble-meta-wrap { display: flex; align-items: flex-end; justify-content: flex-end; float: right; margin-left: 6px; margin-bottom: -3px; margin-top: 1px; gap: 2px; white-space: nowrap; }
-  .bubble-time  { color: rgba(134,150,160,.9); font-size: 11px; line-height: 15px; }
-  .bubble-check { color: #53BDEB; font-size: 14px; line-height: 14px; }
-  .confirm-btns { display: flex; gap: 8px; margin-top: 10px; }
-  .confirm-btns button { flex: 1; padding: 9px; border: none; border-radius: 10px; font-weight: 700; font-size: 13px; cursor: pointer; }
-  .btn-confirmar { background: #25D366; color: white; }
-  .btn-cancelar  { background: #3D4A50; color: #E9EDEF; }
-  #typing { display: none; align-items: flex-end; gap: 5px; margin: 2px 0 4px; padding-left: 8px; }
-  .typing-bubble { background: #202C33; border-radius: 0 7.5px 7.5px 7.5px; padding: 9px 14px; display: flex; gap: 4px; align-items: center; position: relative; box-shadow: 0 1px 0.5px rgba(0,0,0,.36); }
-  .typing-bubble::before { content:""; position:absolute; top:0; left:-8px; border-style:solid; border-width:0 9px 9px 0; border-color:transparent #202C33 transparent transparent; }
-  .dot { width: 7px; height: 7px; border-radius: 50%; background: #8696A0; animation: bounce 1.2s infinite; }
-  .dot:nth-child(2) { animation-delay: .2s; }
-  .dot:nth-child(3) { animation-delay: .4s; }
-  #input-bar { background: #0B141A; padding: 8px 10px; display: flex; align-items: center; gap: 8px; flex-shrink: 0; z-index: 10; }
-  #input-wrap { flex: 1; display: flex; align-items: flex-end; background: #202C33; border-radius: 24px; padding: 6px 14px; gap: 8px; min-height: 44px; }
-  #msg-input { flex: 1; background: transparent; border: none; outline: none; color: #E9EDEF; font-size: 15px; padding: 4px 0; font-family: inherit; resize: none; max-height: 120px; overflow-y: auto; line-height: 21px; }
-  #msg-input::placeholder { color: #8696A0; }
-  #send-btn { width: 48px; height: 48px; border-radius: 50%; background: #00A884; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; color: #fff; user-select: none; -webkit-user-select: none; }
-  #mic-btn { width: 48px; height: 48px; border-radius: 50%; background: #202C33; border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; color: #8696A0; user-select: none; -webkit-user-select: none; transition: background .15s, color .15s; }
-  #mic-btn.gravando { background: #c0392b; color: #fff; animation: micPulse .8s infinite; }
-  @keyframes micPulse { 0%,100%{transform:scale(1)} 50%{transform:scale(1.12)} }
-  .toast-row { display:flex; justify-content:center; margin: 4px 8px 6px; animation: fadeUp .18s ease; }
-  .toast-pill { background: rgba(22,101,52,0.35); border: 1.5px solid #16a34a; border-radius: 14px; padding: 9px 16px; color: #4ade80; font-size: 14.5px; font-weight: 500; text-align:center; line-height:1.4; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
-  .toast-clicavel { cursor: pointer; transition: background .15s, transform .1s; }
-  .toast-clicavel:active { background: rgba(22,101,52,0.6); transform: scale(0.97); }
-  @keyframes bounce { 0%,60%,100%{transform:translateY(0)}30%{transform:translateY(-6px)} }
-  @keyframes fadeUp { from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)} }
-  #chips { display:flex; gap:6px; padding: 4px 10px 0; overflow-x:auto; flex-shrink:0; scrollbar-width:none; }
-  #chips::-webkit-scrollbar { display:none; }
-  .chip { background:#1E2D36; border:1px solid #2A3942; border-radius:16px; padding:5px 12px; color:#A8B8C0; font-size:13px; white-space:nowrap; cursor:pointer; user-select:none; -webkit-user-select:none; flex-shrink:0; transition: background .15s, color .1s; }
-  .chip:active { background:#2A3942; color:#E9EDEF; }
+  #app { width: 100%; max-width: 480px; height: 100dvh; display: flex; flex-direction: column; position: relative; background: #0B141A; overflow: hidden; }
 
-  /* ── ENGRENAGEM ── */
-  #gear-btn { background:none; border:none; cursor:pointer; padding:4px; display:flex; align-items:center; justify-content:center; color:#8696A0; flex-shrink:0; transition: color .2s, transform .3s; }
-  #gear-btn:active { color:#E9EDEF; transform: rotate(60deg); }
+  /* ── TELA: LISTA DE CLIENTES ── */
+  #screen-list { position:absolute; inset:0; display:flex; flex-direction:column; transition: transform .22s ease; z-index: 2; }
+  #screen-list.hidden { transform: translateX(-100%); pointer-events: none; }
+  #list-header { background:#111B21; padding:14px 16px 10px; flex-shrink:0; }
+  #list-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  #list-title { color:#E9EDEF; font-size:19px; font-weight:700; }
+  #list-header-actions { display:flex; gap:6px; }
+  .icon-btn { width:34px; height:34px; border-radius:50%; border:none; background:transparent; color:#AEBAC1; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: background .15s, color .3s; }
+  .icon-btn:active { background:#202C33; }
+  .icon-btn svg { width:19px; height:19px; }
+  .icon-btn.spin svg { animation: spin .6s linear; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  #search-wrap { background:#202C33; border-radius:9px; display:flex; align-items:center; gap:8px; padding:8px 12px; }
+  #search-wrap svg { width:16px; height:16px; color:#8696A0; flex-shrink:0; }
+  #search-input { flex:1; background:transparent; border:none; outline:none; color:#E9EDEF; font-size:14.5px; font-family:inherit; }
+  #search-input::placeholder { color:#8696A0; }
 
-  /* ── MODAL CONFIGURAÇÕES ── */
+  #client-list { flex:1; overflow-y:auto; }
+  #client-list::-webkit-scrollbar { width:4px; }
+  #client-list::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .client-row { display:flex; align-items:center; gap:12px; padding:11px 16px; cursor:pointer; border-bottom:1px solid #172026; transition: background .1s; }
+  .client-row:active { background:#182229; }
+  .client-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #2f6b4f, #1a4531); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:700; color:#bfe8cf; flex-shrink:0; }
+  .client-mid { flex:1; min-width:0; }
+  .client-top-line { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .client-name { color:#E9EDEF; font-size:15.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .client-time { color:#8696A0; font-size:11.5px; flex-shrink:0; }
+  .client-preview { color:#8696A0; font-size:13.5px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px; }
+  .preview-role { flex-shrink:0; opacity:.8; }
+  .client-count { background:#1f3d2c; color:#25D366; font-size:10.5px; font-weight:700; border-radius:9px; padding:1px 7px; flex-shrink:0; }
+
+  #empty-state, #loading-state, #error-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px 30px; text-align:center; }
+  #empty-state { display:none; }
+  #error-state { display:none; }
+  .state-icon { font-size:38px; opacity:.6; }
+  .state-title { color:#E9EDEF; font-size:15px; font-weight:600; }
+  .state-sub { color:#8696A0; font-size:13px; line-height:1.5; }
+  .state-btn { margin-top:6px; background:#00A884; color:#04120D; font-weight:700; font-size:13.5px; border:none; border-radius:9px; padding:9px 18px; cursor:pointer; }
+  .spinner { width:26px; height:26px; border-radius:50%; border:3px solid #2A3942; border-top-color:#25D366; animation: spin .7s linear infinite; }
+
+  /* ── TELA: CHAT ── */
+  #screen-chat { position:absolute; inset:0; display:flex; flex-direction:column; transform: translateX(100%); transition: transform .22s ease; z-index:3; background:#0B141A; }
+  #screen-chat.visible { transform: translateX(0); }
+  #chat-header { background:#111B21; padding:9px 12px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2A3942; flex-shrink:0; z-index:10; }
+  #chat-back { background:none; border:none; color:#AEBAC1; cursor:pointer; padding:6px; display:flex; }
+  #chat-back svg { width:22px; height:22px; }
+  .chat-header-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg, #2f6b4f, #1a4531); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#bfe8cf; flex-shrink:0; }
+  .chat-header-info { flex:1; min-width:0; }
+  .chat-header-name { color:#E9EDEF; font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-header-sub { color:#8696A0; font-size:11.5px; }
+
+  #wallpaper { position:absolute; inset:57px 0 0; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+  #messages { flex:1; overflow-y:auto; padding:10px 0 14px; display:flex; flex-direction:column; position:relative; z-index:1; }
+  #messages::-webkit-scrollbar { width:4px; }
+  #messages::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .date-pill { display:flex; justify-content:center; margin:10px 0 8px; }
+  .date-pill span { background:#1E2D36; border-radius:8px; padding:4px 10px; color:#8696A0; font-size:11.5px; }
+  .msg-row { display:flex; align-items:flex-end; margin-bottom:2px; }
+  .msg-row.user { justify-content:flex-end; padding-left:52px; padding-right:8px; }
+  .msg-row.assistant { justify-content:flex-start; padding-right:52px; padding-left:8px; }
+  .bubble { padding:6px 7px 4px 9px; max-width:100%; position:relative; box-shadow:0 1px 0.5px rgba(0,0,0,.36); word-wrap:break-word; }
+  .bubble.assistant { background:#202C33; border-radius:0 7.5px 7.5px 7.5px; }
+  .bubble.assistant::before { content:""; position:absolute; top:0; left:-8px; border-style:solid; border-width:0 9px 9px 0; border-color:transparent #202C33 transparent transparent; }
+  .bubble.user { background:#005C4B; border-radius:7.5px 0 7.5px 7.5px; }
+  .bubble.user::after { content:""; position:absolute; top:0; right:-8px; border-style:solid; border-width:9px 9px 0 0; border-color:#005C4B transparent transparent transparent; }
+  .bubble-text { color:#E9EDEF; font-size:14.5px; line-height:20px; word-break:break-word; white-space:pre-wrap; }
+  .bubble-img { display:block; max-width:100%; width:220px; border-radius:6px; margin-bottom:4px; cursor:pointer; }
+  .bubble-pdf { display:flex; align-items:center; gap:8px; background:#1A2E38; border:1px solid #2A3942; border-radius:8px; padding:9px 11px; margin-bottom:6px; text-decoration:none; color:#E9EDEF; font-size:13px; }
+  .bubble-pdf svg { width:18px; height:18px; color:#f87171; flex-shrink:0; }
+  .bubble-time { color:rgba(134,150,160,.9); font-size:10.5px; line-height:15px; float:right; margin-left:8px; margin-top:2px; margin-bottom:-3px; }
+
+  /* ── MODAL CONFIGURAÇÃO ── */
   #cfg-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; justify-content:center; align-items:flex-end; }
   #cfg-overlay.open { display:flex; }
-  #cfg-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 36px; animation: slideUp .22s ease; }
-  @keyframes slideUp { from{transform:translateY(100%)} to{transform:translateY(0)} }
+  #cfg-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 30px; }
   #cfg-box h2 { color:#E9EDEF; font-size:16px; font-weight:700; margin-bottom:6px; }
-  #cfg-box p  { color:#8696A0; font-size:12px; margin-bottom:16px; }
-  .cfg-section-title { color:#8696A0; font-size:11px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; margin-bottom:8px; margin-top:4px; }
-  .key-grid { display:grid; grid-template-columns:repeat(5,1fr); gap:8px; margin-bottom:20px; }
-  .key-num { background:#1E2D36; border:1.5px solid #2A3942; border-radius:10px; padding:10px 4px; color:#8696A0; font-size:14px; font-weight:700; text-align:center; cursor:pointer; transition: all .15s; user-select:none; -webkit-user-select:none; }
-  .key-num.active { background:#0d2e1e; border-color:#25D366; color:#25D366; }
-  .key-num:active { transform:scale(.93); }
-  #cfg-close { width:100%; padding:13px; background:#1E2D36; border:none; border-radius:12px; color:#E9EDEF; font-size:15px; font-weight:600; cursor:pointer; margin-top:4px; }
-  #cfg-close:active { background:#2A3942; }
-  .model-list { display:flex; flex-direction:column; gap:6px; margin-bottom:20px; }
-  .model-item { background:#1E2D36; border:1.5px solid #2A3942; border-radius:10px; padding:10px 14px; color:#8696A0; font-size:13px; cursor:pointer; transition: all .15s; user-select:none; -webkit-user-select:none; }
-  .model-item.active { background:#0d2e1e; border-color:#25D366; color:#25D366; font-weight:600; }
-  .model-item:active { transform:scale(.98); }
+  #cfg-box p { color:#8696A0; font-size:12px; margin-bottom:16px; line-height:1.5; }
+  .cfg-label { color:#8696A0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; display:block; }
+  .cfg-input { width:100%; background:#1E2D36; border:1.5px solid #2A3942; border-radius:10px; padding:11px 13px; color:#E9EDEF; font-size:13.5px; font-family:inherit; outline:none; margin-bottom:14px; }
+  .cfg-input:focus { border-color:#25D366; }
+  .cfg-btns { display:flex; gap:8px; margin-top:4px; }
+  .cfg-btns button { flex:1; padding:12px; border:none; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; }
+  #cfg-save { background:#25D366; color:#04120D; }
+  #cfg-cancel { background:#1E2D36; color:#E9EDEF; }
+  #cfg-error { color:#f87171; font-size:12px; margin:-8px 0 12px; display:none; }
 
-  /* ── MODAL PEDIDO ── */
-  #pedido-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.7); z-index:200; justify-content:center; align-items:flex-end; }
-  #pedido-overlay.open { display:flex; }
-  #pedido-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; max-height:85dvh; display:flex; flex-direction:column; animation: slideUp .22s ease; }
-  #pedido-header { padding:16px 20px 10px; border-bottom:1px solid #2A3942; flex-shrink:0; }
-  #pedido-header h2 { color:#E9EDEF; font-size:15px; font-weight:700; }
-  #pedido-header p  { color:#8696A0; font-size:12px; margin-top:3px; }
-  #pedido-items { overflow-y:auto; flex:1; padding:10px 16px; }
-  #pedido-items::-webkit-scrollbar { width:3px; }
-  #pedido-items::-webkit-scrollbar-thumb { background:#2A3942; border-radius:3px; }
-  .pedido-item { display:flex; align-items:center; justify-content:space-between; background:#1E2D36; border-radius:12px; padding:10px 14px; margin-bottom:8px; gap:10px; }
-  .pedido-sec-label { color:#8696A0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.06em; padding:2px 2px 8px; }
-  .pedido-add-section { background:#131F26; border-radius:12px; padding:10px 12px 8px; margin-bottom:4px; }
-  .pedido-add-grid { display:flex; flex-direction:column; gap:6px; }
-  .pedido-add-chip { display:flex; align-items:center; gap:8px; padding:7px 10px; background:#1E2D36; border-radius:10px; }
-  .pedido-add-nome { color:#C8D4DA; font-size:13px; flex:1; }
-  .pedido-add-preco { color:#8696A0; font-size:12px; flex-shrink:0; }
-  .pedido-add-btn { width:30px; height:30px; border-radius:50%; border:none; background:#00A884; color:#fff; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; flex-shrink:0; user-select:none; -webkit-user-select:none; line-height:1; }
-  .pedido-add-btn:active { background:#007a62; }
-  .pedido-item-nome { color:#E9EDEF; font-size:14px; flex:1; }
-  .pedido-item-preco { color:#8696A0; font-size:12px; }
-  .pedido-qty { display:flex; align-items:center; gap:8px; flex-shrink:0; }
-  .pedido-qty button { width:30px; height:30px; border-radius:50%; border:none; background:#2A3942; color:#E9EDEF; font-size:18px; cursor:pointer; display:flex; align-items:center; justify-content:center; line-height:1; user-select:none; -webkit-user-select:none; transition:background .12s; }
-  .pedido-qty button:active { background:#3D4A50; }
-  .pedido-qty span { color:#E9EDEF; font-size:15px; font-weight:700; min-width:20px; text-align:center; }
-  #pedido-footer { padding:12px 16px 28px; border-top:1px solid #2A3942; flex-shrink:0; }
-  #pedido-total-line { color:#E9EDEF; font-size:14px; margin-bottom:12px; text-align:center; }
-  #pedido-total-line strong { color:#25D366; font-size:17px; }
-  .pedido-btns { display:flex; gap:8px; }
-  .pedido-btns button { flex:1; padding:12px; border:none; border-radius:12px; font-weight:700; font-size:14px; cursor:pointer; }
-  #btn-pedido-salvar  { background:#25D366; color:#fff; }
-  #btn-pedido-salvar:active  { background:#1da855; }
-  #btn-pedido-editar { background:#1D3A4F; color:#53BDEB; }
-  #btn-pedido-editar:active { background:#163040; }
+  /* ── MODAL EDITAR CONTATO ── */
+  #rename-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:110; justify-content:center; align-items:flex-end; }
+  #rename-overlay.open { display:flex; }
+  #rename-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 30px; }
+  #rename-box h2 { color:#E9EDEF; font-size:16px; font-weight:700; margin-bottom:4px; }
+  #rename-phone-label { color:#8696A0; font-size:12.5px; margin-bottom:16px; }
+  #rename-error { color:#f87171; font-size:12px; margin:-8px 0 12px; display:none; }
 
-  /* ── PEDIDO INLINE NO CHAT ── */
-  .chat-pedido { background:#1A2E38; border:1px solid #2A3942; border-radius:12px; padding:12px 14px; margin-top:2px; min-width:210px; }
-  .chat-pedido-titulo { color:#E9EDEF; font-weight:700; font-size:14px; margin-bottom:2px; }
-  .chat-pedido-sub { color:#8696A0; font-size:11px; margin-bottom:8px; }
-  .chat-pedido-bloco { margin-bottom:10px; padding-bottom:10px; border-bottom:1px solid #2A3942; }
-  .chat-pedido-bloco:last-of-type { border-bottom:none; margin-bottom:0; padding-bottom:0; }
-  .chat-pedido-bloco-num { color:#53BDEB; font-size:12px; font-weight:700; margin-bottom:4px; }
-  .chat-pedido-item { color:#E9EDEF; font-size:13px; line-height:1.8; }
-  .chat-pedido-total { color:#25D366; font-weight:700; font-size:13px; margin-top:4px; }
-  .chat-pedido-btns { display:flex; gap:8px; margin-top:10px; }
-  .chat-pedido-btn { flex:1; padding:9px 6px; border:none; border-radius:10px; font-size:13px; font-weight:700; cursor:pointer; user-select:none; -webkit-user-select:none; }
-  .btn-cp-editar { background:#1D3A4F; color:#53BDEB; }
-  .btn-cp-editar:active { background:#163040; }
-  .btn-cp-excluir { background:#2D1515; color:#f87171; }
-  .btn-cp-excluir:active { background:#3D1515; }
-  #btn-pedido-cancelar { background:#3D4A50; color:#E9EDEF; }
-  #btn-pedido-cancelar:active { background:#2A3942; }
-  #btn-pedido-wpp { width:100%; padding:11px; border:none; border-radius:12px; background:#005C4B; color:#E9EDEF; font-weight:700; font-size:14px; cursor:pointer; margin-top:8px; display:none; }
-  #btn-pedido-wpp:active { background:#004035; }
+  /* ── LIGHTBOX DE IMAGEM ── */
+  #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:150; justify-content:center; align-items:center; padding:20px; }
+  #lightbox.open { display:flex; }
+  #lightbox img { max-width:100%; max-height:100%; border-radius:6px; }
 
-  /* ── MODAL PALAVRAS-CHAVE ── */
-  .pw-cat-item { display:flex; align-items:center; gap:12px; background:#1E2D36; border-radius:14px; padding:14px 14px; cursor:pointer; user-select:none; -webkit-user-select:none; transition: background .15s; }
-  .pw-cat-item:active { background:#2A3942; }
-  .pw-cat-icon { font-size:26px; flex-shrink:0; }
-  .pw-cat-info { flex:1; }
-  .pw-cat-nome { font-size:15px; font-weight:700; margin-bottom:2px; }
-  .pw-cat-desc { font-size:12px; color:#8696A0; }
-  .pw-cat-arrow { font-size:22px; color:#2A3942; flex-shrink:0; }
-  .pw-bloco { background:#1E2D36; border-radius:14px; padding:16px; margin-bottom:12px; }
-  .pw-bloco-titulo { font-size:14px; font-weight:700; color:#E9EDEF; margin-bottom:10px; }
-  .pw-linha-bloco { color:#8696A0; font-size:14px; line-height:1.9; margin-bottom:4px; }
-  .pw-inline-tags { display:inline; }
-  .pw-tag { color:#53BDEB; font-size:14px; font-weight:400; font-family:inherit; }
-  .pw-label { color:#E9EDEF; font-weight:600; }
-  .pw-hl { color:#53BDEB; }
+  /* ── LÁPIS DE EDITAR ── */
+  .edit-pencil { width:30px; height:30px; border-radius:50%; border:none; background:transparent; color:#8696A0; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition: background .15s, color .15s; }
+  .edit-pencil:active { background:#202C33; color:#E9EDEF; }
+  .edit-pencil svg { width:16px; height:16px; }
 </style>
 </head>
 <body>
 <div id="app">
-  <div id="header">
-    <div class="header-avatar">&#x1F47D;<div class="status-dot" id="statusDot"></div></div>
-    <div class="header-info">
-      <div class="header-name">𝕕𝕚𝕟𝕠 𝕚.𝕒 <span style="font-size:11px;color:#c75b24;font-weight:400;">&#x25CF; administrador</span></div>
-      <div class="header-status" id="headerStatus">online</div>
-    </div>
-    <button id="gear-btn" onclick="abrirCfg()" aria-label="Configurações">
-      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
-      </svg>
-    </button>
-  </div>
 
-  <!-- MODAL CONFIGURAÇÕES -->
-  <div id="cfg-overlay" onclick="fecharCfgFora(event)">
-    <div id="cfg-box">
-      <h2>⚙️ Configurações</h2>
-      <p id="cfg-model-label">Powered by <strong style="color:#25D366">Gemini 2.5 Flash</strong> — troca automática de chave no limite.</p>
-      <div class="cfg-section-title">Chave da API (manual)</div>
-      <div id="key-grid" class="key-grid"></div>
-      <div id="cfg-key-label" style="color:#8696A0;font-size:11px;margin-top:-12px;margin-bottom:18px;text-align:center;"></div>
-      <div class="cfg-section-title" style="margin-top:16px;">Chaves da API</div>
-      <button onclick="mostrarGuiaChaves()" style="width:100%;padding:10px;background:#2A3942;color:#E9EDEF;border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-bottom:10px;">🔑 Como adicionar mais chaves</button>
-      <div id="key-guide" style="display:none;background:#1a2730;border-radius:10px;padding:12px;margin-bottom:14px;color:#E9EDEF;font-size:12px;line-height:1.7;"></div>
-      <div class="cfg-section-title" style="margin-top:16px;">Diagnóstico</div>
-      <button onclick="diagnosticar()" style="width:100%;padding:10px;background:#2A3942;color:#E9EDEF;border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-bottom:10px;">🔍 Testar conexão com Gemini</button>
-      <div id="diag-result" style="color:#8696A0;font-size:12px;text-align:center;min-height:18px;margin-bottom:16px;"></div>
-      <div class="cfg-section-title" style="margin-top:16px;">Conversa</div>
-      <button onclick="confirmarLimparConversa()" style="width:100%;padding:10px;background:#2D1515;color:#f87171;border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-bottom:10px;">🗑️ Apagar todas as conversas</button>
-      <div id="limpar-confirm" style="display:none;background:#1a1010;border-radius:10px;padding:12px;margin-bottom:14px;text-align:center;">
-        <p style="color:#f87171;font-size:13px;margin-bottom:10px;">Apagar tudo? Isso não pode ser desfeito.</p>
-        <div style="display:flex;gap:8px;">
-          <button onclick="cancelarLimpar()" style="flex:1;padding:9px;background:#2A3942;color:#E9EDEF;border:none;border-radius:10px;font-size:13px;cursor:pointer;">Cancelar</button>
-          <button onclick="limparConversa()" style="flex:1;padding:9px;background:#c0392b;color:#fff;border:none;border-radius:10px;font-size:13px;font-weight:700;cursor:pointer;">Apagar tudo</button>
+  <!-- ===================== LISTA DE CLIENTES ===================== -->
+  <div id="screen-list">
+    <div id="list-header">
+      <div id="list-header-top">
+        <div id="list-title">Conversas</div>
+        <div id="list-header-actions">
+          <button class="icon-btn" id="btn-refresh" title="Atualizar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-gear" title="Configurar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
         </div>
       </div>
-      <div class="cfg-section-title" style="margin-top:16px;">Palavras-chave</div>
-      <button onclick="abrirModalPalavras()" style="width:100%;padding:10px;background:#2A3942;color:#E9EDEF;border:none;border-radius:10px;font-size:13px;cursor:pointer;margin-bottom:10px;">📖 Ver comandos e palavras-chave</button>
-      <button id="cfg-close" onclick="fecharCfg()">Fechar</button>
-    </div>
-  </div>
-  <!-- MODAL EDITAR PEDIDO -->
-  <div id="pedido-overlay" onclick="fecharPedidoFora(event)">
-    <div id="pedido-box">
-      <div id="pedido-header">
-        <h2>📋 Pedido de <span id="pedido-nome-cliente"></span></h2>
-        <p id="pedido-subtitulo">Ajuste as quantidades e salve</p>
-      </div>
-      <div id="pedido-items"></div>
-      <div id="pedido-footer">
-        <div id="pedido-total-line">Total: <strong id="pedido-total-valor">R$ 0,00</strong></div>
-        <div id="pedido-desconto-line" style="display:none;color:#f87171;font-size:12px;text-align:center;margin-top:-6px;margin-bottom:6px;"></div>
-        <div class="pedido-btns">
-          <button class="pedido-btns" id="btn-pedido-cancelar" onclick="fecharPedido()">✕ Fechar</button>
-          <button class="pedido-btns" id="btn-pedido-editar" onclick="ativarEdicaoPedido()">✏️ Mudar Pedido</button>
-          <button class="pedido-btns" id="btn-pedido-salvar" onclick="salvarPedido()">✅ Salvar</button>
-        </div>
-        <button id="btn-pedido-wpp" onclick="enviarComprovanteAlteracaoWpp()">📲 Enviar comprovante no WhatsApp</button>
+      <div id="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="search-input" placeholder="Buscar por nome ou telefone">
       </div>
     </div>
+
+    <div id="loading-state">
+      <div class="spinner"></div>
+      <div class="state-sub">Carregando conversas…</div>
+    </div>
+
+    <div id="error-state">
+      <div class="state-icon">⚠️</div>
+      <div class="state-title">Não consegui carregar</div>
+      <div class="state-sub" id="error-msg">Confira a URL e a chave do Supabase.</div>
+      <button class="state-btn" id="btn-error-cfg">Abrir configuração</button>
+    </div>
+
+    <div id="empty-state">
+      <div class="state-icon">💬</div>
+      <div class="state-title">Nenhuma conversa ainda</div>
+      <div class="state-sub">Assim que um cliente mandar mensagem pro bot, ela aparece aqui.</div>
+    </div>
+
+    <div id="client-list" style="display:none"></div>
   </div>
 
-  <!-- MODAL PALAVRAS-CHAVE: CATEGORIAS -->
-  <div id="pw-overlay" onclick="fecharPalavrasFora(event)" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:300;justify-content:center;align-items:flex-end;">
-    <div id="pw-box" style="background:#111B21;border-radius:18px 18px 0 0;width:100%;max-width:480px;padding:20px 16px 36px;animation:slideUp .22s ease;">
-      <div style="text-align:center;"><div style="width:36px;height:4px;background:#2A3942;border-radius:4px;margin:0 auto 14px;"></div></div>
-      <div style="font-size:17px;font-weight:700;color:#E9EDEF;margin-bottom:4px;">📖 Comandos e Palavras-chave</div>
-      <div style="font-size:12px;color:#8696A0;margin-bottom:18px;">Toque numa categoria para ver os comandos</div>
-      <div style="display:flex;flex-direction:column;gap:10px;margin-bottom:20px;">
-        <div class="pw-cat-item" onclick="abrirCategoria('pedidos')">
-          <span class="pw-cat-icon">📋</span>
-          <div class="pw-cat-info"><div class="pw-cat-nome" style="color:#c75b24;">Pedidos</div><div class="pw-cat-desc">Ver, editar, histórico, quem pediu hoje</div></div>
-          <span class="pw-cat-arrow">›</span>
-        </div>
-        <div class="pw-cat-item" onclick="abrirCategoria('pagamentos')">
-          <span class="pw-cat-icon">💰</span>
-          <div class="pw-cat-info"><div class="pw-cat-nome" style="color:#25D366;">Pagamentos</div><div class="pw-cat-desc">Registrar pagamento, saldo, devedores</div></div>
-          <span class="pw-cat-arrow">›</span>
-        </div>
-        <div class="pw-cat-item" onclick="abrirCategoria('comprovantes')">
-          <span class="pw-cat-icon">🧾</span>
-          <div class="pw-cat-info"><div class="pw-cat-nome" style="color:#53BDEB;">Comprovantes</div><div class="pw-cat-desc">Ver comprovantes, filtros de data</div></div>
-          <span class="pw-cat-arrow">›</span>
-        </div>
-        <div class="pw-cat-item" onclick="abrirCategoria('filtros')">
-          <span class="pw-cat-icon">📅</span>
-          <div class="pw-cat-info"><div class="pw-cat-nome" style="color:#a78bfa;">Filtros de Data</div><div class="pw-cat-desc">hoje, ontem, essa semana, intervalo…</div></div>
-          <span class="pw-cat-arrow">›</span>
-        </div>
+  <!-- ===================== CHAT ===================== -->
+  <div id="screen-chat">
+    <div id="chat-header">
+      <button id="chat-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="chat-header-avatar" id="chat-avatar">?</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chat-name">—</div>
+        <div class="chat-header-sub" id="chat-sub">—</div>
       </div>
-      <button onclick="fecharModalPalavras()" style="width:100%;padding:13px;background:#1E2D36;border:none;border-radius:12px;color:#E9EDEF;font-size:15px;font-weight:600;cursor:pointer;">Fechar</button>
+      <button class="edit-pencil" id="chat-edit-pencil" title="Editar contato">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-refresh-chat" title="Atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
     </div>
+    <div id="wallpaper"></div>
+    <div id="messages"></div>
   </div>
 
-  <!-- MODAL PALAVRAS-CHAVE: DETALHE TELA CHEIA -->
-  <div id="pw-detail-overlay" style="display:none;position:fixed;inset:0;background:#0B141A;z-index:400;flex-direction:column;">
-    <div style="background:#111B21;padding:14px 16px;display:flex;align-items:center;gap:12px;border-bottom:1px solid #2A3942;flex-shrink:0;">
-      <button onclick="voltarCategorias()" style="background:none;border:none;color:#53BDEB;font-size:26px;cursor:pointer;padding:0;line-height:1;">‹</button>
-      <div id="pw-detail-titulo" style="color:#E9EDEF;font-size:16px;font-weight:700;flex:1;"></div>
-    </div>
-    <div id="pw-detail-conteudo" style="flex:1;overflow-y:auto;padding:16px;font-size:14px;line-height:1.9;color:#8696A0;"></div>
-    <div style="padding:12px 16px 32px;flex-shrink:0;">
-      <button onclick="voltarCategorias()" style="width:100%;padding:13px;background:#1E2D36;border:none;border-radius:12px;color:#E9EDEF;font-size:15px;font-weight:600;cursor:pointer;">Fechar</button>
-    </div>
-  </div>
+</div>
 
-  <div id="wallpaper"></div>
-  <div id="messages">
-    <div class="date-pill"><span id="datePill"></span></div>
-    <div id="typing" style="display:none;">
-      <div class="typing-bubble"><div class="dot"></div><div class="dot"></div><div class="dot"></div></div>
+<!-- ===================== MODAL CONFIGURAÇÃO ===================== -->
+<div id="cfg-overlay">
+  <div id="cfg-box">
+    <h2>Conectar ao Supabase</h2>
+    <p>Já vem configurado com o seu Supabase. Só mexe aqui se precisar trocar de projeto — fica salvo só neste navegador.</p>
+    <div id="cfg-error"></div>
+    <span class="cfg-label">Supabase URL</span>
+    <input class="cfg-input" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co">
+    <span class="cfg-label">Anon key</span>
+    <input class="cfg-input" id="cfg-key" placeholder="eyJhbGciOi...">
+    <div class="cfg-btns">
+      <button id="cfg-cancel">Cancelar</button>
+      <button id="cfg-save">Salvar e carregar</button>
     </div>
-  </div>
-  <div id="input-bar">
-    <div id="input-wrap">
-      <textarea id="msg-input" placeholder="Mensagem" autocomplete="off" rows="1"></textarea>
-    </div>
-    <button id="mic-btn" onclick="toggleMic()" aria-label="Microfone">🎤</button>
-    <button id="send-btn" class="active" onclick="enviar()" aria-label="Enviar" style="display:none;">&#x27A4;</button>
   </div>
 </div>
+
+<!-- ===================== MODAL EDITAR CONTATO ===================== -->
+<div id="rename-overlay">
+  <div id="rename-box">
+    <h2>Editar contato</h2>
+    <p id="rename-phone-label">—</p>
+    <div id="rename-error"></div>
+    <span class="cfg-label">Nome</span>
+    <input class="cfg-input" id="rename-input" placeholder="Nome do cliente" maxlength="80">
+    <div class="cfg-btns">
+      <button id="rename-cancel">Cancelar</button>
+      <button id="rename-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox"><img id="lightbox-img" src="" alt="mídia ampliada"></div>
+
 <script>
-const SUPABASE_URL = "https://vpeyqgijajywgswmezlh.supabase.co";
-const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ";
-// ── GEMINI API ──
-const GEMINI_KEYS = __GEMINI_KEYS__;
-let geminiKeyIndex = (() => { try { const s = localStorage.getItem("dino_gemini_key_idx"); return s !== null ? parseInt(s) : 0; } catch(e) { return 0; } })();
-const GEMINI_MODELS = [
-  { id: "gemini-2.5-flash", nome: "2.5 Flash" },
-];
-let geminiModelIndex = (() => { try { const s = localStorage.getItem("dino_gemini_model_idx"); return s !== null ? parseInt(s) : 0; } catch(e) { return 0; } })();
-const GEMINI_MODEL = () => GEMINI_MODELS[geminiModelIndex].id;
+(function () {
+  "use strict";
 
-async function geminiRequest(systemPrompt, mensagens) {
-  let ultimoErro = "";
-  for (let tentativa = 0; tentativa < GEMINI_KEYS.length; tentativa++) {
-    const chave = GEMINI_KEYS[geminiKeyIndex];
-    const url = "https://generativelanguage.googleapis.com/v1beta/models/" + GEMINI_MODEL() + ":generateContent";
-    const contents = [];
-    for (const m of mensagens) {
-      contents.push({ role: m.role === "assistant" ? "model" : "user", parts: [{ text: m.content }] });
-    }
-    const body = {
-      system_instruction: { parts: [{ text: systemPrompt }] },
-      contents,
-      generationConfig: { temperature: 0.1, maxOutputTokens: 300 }
-    };
+  var STORAGE_KEY = "reicoxinha_viewer_config";
+  var PADRAO = {
+    url: "https://vpeyqgijajywgswmezlh.supabase.co",
+    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ"
+  };
+  var cfg = { url: PADRAO.url, key: PADRAO.key };
+  var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
+  var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count }
+  var currentPhone = null;
+
+  // ---------- helpers ----------
+  function carregarConfig() {
     try {
-      const res = await fetch(url, {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var salvo = JSON.parse(raw);
+        if (salvo && salvo.url && salvo.key) cfg = salvo;
+      }
+    } catch (e) {}
+  }
+  function salvarConfig() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  }
+  function headers() {
+    return { apikey: cfg.key, Authorization: "Bearer " + cfg.key, "Content-Type": "application/json" };
+  }
+  function formatarTelefone(numero) {
+    var n = String(numero || "").replace(/\D/g, "");
+    if (n.length === 11) return "(" + n.slice(0, 2) + ") " + n.slice(2, 7) + "-" + n.slice(7);
+    if (n.length === 10) return "(" + n.slice(0, 2) + ") " + n.slice(2, 6) + "-" + n.slice(6);
+    return n;
+  }
+  function iniciais(nome) {
+    if (!nome) return "?";
+    return nome.trim().charAt(0).toUpperCase();
+  }
+  function horaCurta(iso) {
+    var d = new Date(iso);
+    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function dataLabel(iso) {
+    var d = new Date(iso);
+    var hoje = new Date();
+    var ontem = new Date();
+    ontem.setDate(hoje.getDate() - 1);
+    var mesmoDia = function (a, b) { return a.toDateString() === b.toDateString(); };
+    if (mesmoDia(d, hoje)) return "Hoje";
+    if (mesmoDia(d, ontem)) return "Ontem";
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+  function listaLabel(iso) {
+    var d = new Date(iso);
+    var hoje = new Date();
+    if (d.toDateString() === hoje.toDateString()) {
+      return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---------- config modal ----------
+  var cfgOverlay = document.getElementById("cfg-overlay");
+  var cfgUrl = document.getElementById("cfg-url");
+  var cfgKey = document.getElementById("cfg-key");
+  var cfgError = document.getElementById("cfg-error");
+
+  function abrirConfig() {
+    cfgUrl.value = cfg.url || "";
+    cfgKey.value = cfg.key || "";
+    cfgError.style.display = "none";
+    cfgOverlay.classList.add("open");
+  }
+  function fecharConfig() { cfgOverlay.classList.remove("open"); }
+
+  document.getElementById("btn-gear").onclick = abrirConfig;
+  document.getElementById("btn-error-cfg").onclick = abrirConfig;
+  document.getElementById("cfg-cancel").onclick = fecharConfig;
+  document.getElementById("cfg-save").onclick = function () {
+    var url = cfgUrl.value.trim().replace(/\/+$/, "");
+    var key = cfgKey.value.trim();
+    if (!url || !key || !/^https?:\/\//.test(url)) {
+      cfgError.textContent = "Preenche a URL (começando com https://) e a anon key.";
+      cfgError.style.display = "block";
+      return;
+    }
+    cfg.url = url;
+    cfg.key = key;
+    salvarConfig();
+    fecharConfig();
+    carregarClientes();
+  };
+
+  // ---------- editar contato (nome) ----------
+  var renameOverlay = document.getElementById("rename-overlay");
+  var renameInput = document.getElementById("rename-input");
+  var renamePhoneLabel = document.getElementById("rename-phone-label");
+  var renameError = document.getElementById("rename-error");
+  var renamePhoneAtual = null;
+
+  function abrirRename(phone) {
+    renamePhoneAtual = phone;
+    renamePhoneLabel.textContent = formatarTelefone(phone);
+    renameInput.value = clientesMap[phone] || "";
+    renameError.style.display = "none";
+    renameOverlay.classList.add("open");
+    setTimeout(function () { renameInput.focus(); }, 50);
+  }
+  function fecharRename() { renameOverlay.classList.remove("open"); }
+  document.getElementById("rename-cancel").onclick = fecharRename;
+  document.getElementById("chat-edit-pencil").onclick = function () {
+    if (currentPhone) abrirRename(currentPhone);
+  };
+
+  document.getElementById("rename-save").onclick = function () {
+    var nome = renameInput.value.trim();
+    if (!nome) {
+      renameError.textContent = "Digita um nome.";
+      renameError.style.display = "block";
+      return;
+    }
+    var phone = renamePhoneAtual;
+    var jaTemCliente = Object.prototype.hasOwnProperty.call(clientesMap, phone);
+    var btnSalvar = document.getElementById("rename-save");
+    btnSalvar.textContent = "Salvando…";
+    btnSalvar.disabled = true;
+
+    var pedido;
+    if (jaTemCliente) {
+      // já existe linha em "clientes" pra esse telefone → atualiza o nome
+      pedido = fetch(cfg.url + "/rest/v1/clientes?phone=eq." + encodeURIComponent(phone), {
+        method: "PATCH",
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ name: nome })
+      });
+    } else {
+      // cliente só apareceu em conversas_bot ainda → cria a linha em "clientes"
+      pedido = fetch(cfg.url + "/rest/v1/clientes", {
         method: "POST",
-        headers: { "Content-Type": "application/json", "x-goog-api-key": chave },
-        body: JSON.stringify(body)
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ phone: phone, name: nome, debt: 0, tickets: 0, diamantes: 0 })
       });
-      const json = await res.json();
-      const errCode = json?.error?.code || res.status;
-      if (errCode === 429 || errCode === 401 || errCode === 403) {
-        ultimoErro = "Chave " + (geminiKeyIndex+1) + ": " + (json?.error?.message || errCode);
-        geminiKeyIndex = (geminiKeyIndex + 1) % GEMINI_KEYS.length;
-        continue;
-      }
-      if (!res.ok || json?.error) return { erro: "Erro na API (" + errCode + "): " + (json?.error?.message || "") };
-      const texto = json.candidates?.[0]?.content?.parts?.[0]?.text || "";
-      if (!texto) {
-        geminiKeyIndex = (geminiKeyIndex + 1) % GEMINI_KEYS.length;
-        continue;
-      }
-      return { ok: true, texto };
-    } catch(e) {
-      return { erro: "Erro de conexão: " + e.message };
     }
+
+    pedido.then(function (r) {
+      if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+      clientesMap[phone] = nome;
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      fecharRename();
+      renderLista();
+      if (currentPhone === phone) {
+        document.getElementById("chat-avatar").textContent = iniciais(nome);
+        document.getElementById("chat-name").textContent = nome;
+      }
+    }).catch(function (err) {
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      renameError.textContent = "Não consegui salvar: " + err.message;
+      renameError.style.display = "block";
+    });
+  };
+
+  // ---------- telas ----------
+  var screenList = document.getElementById("screen-list");
+  var screenChat = document.getElementById("screen-chat");
+  function irParaChat() { screenChat.classList.add("visible"); }
+  function voltarParaLista() { screenChat.classList.remove("visible"); currentPhone = null; }
+  document.getElementById("chat-back").onclick = voltarParaLista;
+
+  // ---------- estados da lista ----------
+  var loadingState = document.getElementById("loading-state");
+  var errorState = document.getElementById("error-state");
+  var emptyState = document.getElementById("empty-state");
+  var clientListEl = document.getElementById("client-list");
+  var errorMsgEl = document.getElementById("error-msg");
+
+  function mostrarEstado(nome) {
+    loadingState.style.display = nome === "loading" ? "flex" : "none";
+    errorState.style.display = nome === "error" ? "flex" : "none";
+    emptyState.style.display = nome === "empty" ? "flex" : "none";
+    clientListEl.style.display = nome === "list" ? "block" : "none";
   }
-  return { erro: "Todas as chaves falharam com o modelo " + GEMINI_MODEL() + ".\n\nÚltimo erro: " + ultimoErro + "\n\nAdicione mais chaves em ⚙️ Configurações." };
-}
 
-const SB_H = { apikey: SUPABASE_KEY, Authorization: "Bearer " + SUPABASE_KEY, "Content-Type": "application/json" };
-
-async function sbGet(table, filters) {
-  let url = SUPABASE_URL + "/rest/v1/" + table + "?select=*";
-  for (const [k,v] of Object.entries(filters||{})) url += "&" + k + "=eq." + encodeURIComponent(v);
-  return (await fetch(url, { headers: SB_H })).json();
-}
-async function sbUpdate(table, match, data) {
-  let url = SUPABASE_URL + "/rest/v1/" + table + "?";
-  for (const [k,v] of Object.entries(match)) url += k + "=eq." + encodeURIComponent(v) + "&";
-  return (await fetch(url, { method:"PATCH", headers:{...SB_H, Prefer:"return=representation"}, body:JSON.stringify(data) })).json();
-}
-async function sbInsert(table, data) {
-  return (await fetch(SUPABASE_URL + "/rest/v1/" + table, { method:"POST", headers:{...SB_H, Prefer:"return=representation"}, body:JSON.stringify(data) })).json();
-}
-async function sbDelete(table, match) {
-  let url = SUPABASE_URL + "/rest/v1/" + table + "?";
-  for (const [k,v] of Object.entries(match)) url += k + "=eq." + encodeURIComponent(v) + "&";
-  return fetch(url, { method:"DELETE", headers:{...SB_H, Prefer:"return=representation"} });
-}
-
-function dataHoraSP() {
-  return new Date().toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
-}
-
-// ── ESTADO ──
-let historico       = [];
-let ocupado         = false;
-let pendente        = null;   // pagamento aguardando confirmacao
-let pendenteSug     = null;   // sugestoes fuzzy aguardando escolha
-let clientesCache   = null;
-let ultimoPagamento = null;  // dados do último pagamento para comprovante
-let pixDadosUrl     = null;  // dados do PIX que vieram pela URL (persistem durante a sessão)
-
-// ── STORAGE LOCAL (20 dias) ──
-const STORAGE_KEY = "dino_chat_v1";
-const DIAS_SALVAR = 20;
-let   msgsSalvas  = [];   // [{role, texto, time, toast}]
-let   restaurando = false;
-
-function salvarLocal() {
-  if (restaurando) return;
-  try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify({
-      ts: Date.now(),
-      historico,
-      msgs: msgsSalvas
-    }));
-  } catch(e) {}
-}
-
-function carregarLocal() {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return false;
-    const dados = JSON.parse(raw);
-    if (!dados.ts || Date.now() - dados.ts > DIAS_SALVAR * 86400000) {
-      localStorage.removeItem(STORAGE_KEY);
-      return false;
-    }
-    historico = dados.historico || [];
-    msgsSalvas = dados.msgs || [];
-    restaurando = true;
-    for (const m of (dados.msgs || [])) {
-      if (m.toast) addToast(m.texto, m.pagData || null);
-      else {
-        addMsg(m.role, m.texto, false, m.time);
-        if (m.cancelado) {
-          const bubbles = document.querySelectorAll(".bubble.bot");
-          const last = bubbles[bubbles.length - 1];
-          if (last) {
-            const span = document.createElement("span");
-            span.textContent = "Cancelado";
-            span.style.cssText = "display:block;color:#f87171;font-size:11px;margin-top:6px;";
-            last.appendChild(span);
+  // ---------- carregar clientes (agrupando conversas_bot por phone) ----------
+  function carregarClientes() {
+    mostrarEstado("loading");
+    var qs = "select=phone,role,conteudo,created_at&order=created_at.desc&limit=5000";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qs, { headers: headers() })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json();
+      })
+      .then(function (rows) {
+        groupsByPhone = {};
+        rows.forEach(function (m) {
+          if (!groupsByPhone[m.phone]) {
+            groupsByPhone[m.phone] = {
+              lastTime: m.created_at,
+              lastRole: m.role,
+              lastMsg: m.conteudo,
+              count: 0
+            };
           }
+          groupsByPhone[m.phone].count++;
+        });
+        return carregarNomesClientes();
+      })
+      .then(renderLista)
+      .catch(function (err) {
+        errorMsgEl.textContent = err.message || "Erro desconhecido.";
+        mostrarEstado("error");
+      });
+  }
+
+  function carregarNomesClientes() {
+    // Tenta enriquecer com nome da tabela clientes; se falhar (tabela não existe,
+    // permissão negada etc.), segue mostrando só o telefone — não quebra a lista.
+    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name", { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        clientesMap = {};
+        (rows || []).forEach(function (c) { clientesMap[c.phone] = c.name; });
+      })
+      .catch(function () { clientesMap = {}; });
+  }
+
+  function renderLista() {
+    var phones = Object.keys(groupsByPhone);
+    if (phones.length === 0) { mostrarEstado("empty"); return; }
+    phones.sort(function (a, b) {
+      return new Date(groupsByPhone[b].lastTime) - new Date(groupsByPhone[a].lastTime);
+    });
+    var termo = document.getElementById("search-input").value.trim().toLowerCase();
+    var html = "";
+    phones.forEach(function (phone) {
+      var nome = clientesMap[phone] || formatarTelefone(phone);
+      if (termo && nome.toLowerCase().indexOf(termo) === -1 && phone.indexOf(termo) === -1) return;
+      var g = groupsByPhone[phone];
+      var prefixo = g.lastRole === "user" ? "" : "Você: ";
+      html += ''
+        + '<div class="client-row" data-phone="' + phone + '">'
+        +   '<div class="client-avatar">' + iniciais(nome) + '</div>'
+        +   '<div class="client-mid">'
+        +     '<div class="client-top-line">'
+        +       '<div class="client-name">' + escapeHtml(nome) + '</div>'
+        +       '<div class="client-time">' + listaLabel(g.lastTime) + '</div>'
+        +     '</div>'
+        +     '<div class="client-preview">'
+        +       '<span class="preview-role">' + prefixo + '</span>'
+        +       '<span>' + escapeHtml((g.lastMsg || "").replace(/\n/g, " ")).slice(0, 60) + '</span>'
+        +     '</div>'
+        +   '</div>'
+        +   '<button class="edit-pencil" data-phone="' + phone + '" title="Editar contato">'
+        +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+        +   '</button>'
+        +   '<div class="client-count">' + g.count + '</div>'
+        + '</div>';
+    });
+    clientListEl.innerHTML = html;
+    mostrarEstado("list");
+    Array.prototype.forEach.call(document.querySelectorAll(".client-row"), function (row) {
+      row.onclick = function () { abrirChat(row.getAttribute("data-phone")); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".client-list .edit-pencil, #client-list .edit-pencil"), function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        abrirRename(btn.getAttribute("data-phone"));
+      };
+    });
+  }
+
+  document.getElementById("search-input").oninput = function () {
+    if (clientListEl.style.display !== "none") renderLista();
+  };
+  document.getElementById("btn-refresh").onclick = function (e) {
+    e.currentTarget.classList.add("spin");
+    setTimeout(function () { e.currentTarget.classList.remove("spin"); }, 600);
+    carregarClientes();
+  };
+
+  // ---------- chat de um cliente ----------
+  var messagesEl = document.getElementById("messages");
+  function abrirChat(phone) {
+    currentPhone = phone;
+    var nome = clientesMap[phone] || formatarTelefone(phone);
+    document.getElementById("chat-avatar").textContent = iniciais(nome);
+    document.getElementById("chat-name").textContent = nome;
+    document.getElementById("chat-sub").textContent = formatarTelefone(phone);
+    irParaChat();
+    carregarMensagens(phone);
+  }
+  document.getElementById("btn-refresh-chat").onclick = function () {
+    if (currentPhone) carregarMensagens(currentPhone);
+  };
+
+  function carregarMensagens(phone) {
+    messagesEl.innerHTML = '<div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div>';
+    var qsComMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at,midia_base64,midia_mime&order=created_at.asc&limit=2000";
+    var qsSemMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at&order=created_at.asc&limit=2000";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qsComMidia, { headers: headers() })
+      .then(function (r) {
+        // Se as colunas midia_base64/midia_mime ainda não existirem na tabela,
+        // repete a busca sem elas em vez de quebrar a tela toda.
+        if (!r.ok) return fetch(cfg.url + "/rest/v1/conversas_bot?" + qsSemMidia, { headers: headers() });
+        return r;
+      })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json();
+      })
+      .then(renderMensagens)
+      .catch(function (err) {
+        messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Erro ao carregar: ' + escapeHtml(err.message) + '</div>';
+      });
+  }
+
+  function renderMensagens(msgs) {
+    if (!msgs || msgs.length === 0) {
+      messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Nenhuma mensagem encontrada.</div>';
+      return;
+    }
+    var html = "";
+    var diaAtual = null;
+    msgs.forEach(function (m) {
+      var label = dataLabel(m.created_at);
+      if (label !== diaAtual) {
+        html += '<div class="date-pill"><span>' + label + '</span></div>';
+        diaAtual = label;
+      }
+      var role = m.role === "user" ? "user" : "assistant";
+      var imgHtml = "";
+      if (m.midia_base64 && m.midia_mime) {
+        if (m.midia_mime.indexOf("pdf") !== -1) {
+          imgHtml = '<a class="bubble-pdf" href="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" target="_blank" rel="noopener">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+            + '<span>Ver PDF</span></a>';
+        } else {
+          imgHtml = '<img class="bubble-img" src="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" alt="mídia enviada">';
         }
       }
-    }
-    restaurando = false;
-    return true;
-  } catch(e) { restaurando = false; return false; }
-}
-
-const agora = () => new Date().toLocaleTimeString("pt-BR",{hour:"2-digit",minute:"2-digit"});
-const msgs  = () => document.getElementById("messages");
-const rolar = () => msgs().scrollTo({top:msgs().scrollHeight,behavior:"smooth"});
-
-function setStatus(t) {
-  document.getElementById("headerStatus").textContent = t ? "digitando..." : "online";
-  document.getElementById("statusDot").style.background = t ? "#8696A0" : "#25D366";
-}
-
-function addMsg(role, texto, comBotoes, _time) {
-  const t = _time || agora();
-  const row = document.createElement("div");
-  row.className = "msg-row " + (role==="user" ? "user" : "bot");
-  const meta = '<span class="bubble-meta-wrap"><span class="bubble-time">' + t + '</span>' + (role==="user"?'<span class="bubble-check">&#x2713;&#x2713;</span>':'') + '</span>';
-  let inner = '<div class="bubble ' + (role==="user"?"user":"bot") + '">' + meta + '<span class="bubble-text">' + texto + '</span>';
-  if (comBotoes) inner += '<div class="confirm-btns"><button class="btn-cancelar" onclick="cancelarPendente()">&#x2715; Cancelar</button><button class="btn-confirmar" onclick="confirmarPendente()">&#x2705; Confirmar</button></div>';
-  inner += '</div>';
-  row.innerHTML = inner;
-  msgs().insertBefore(row, document.getElementById("typing"));
-  rolar();
-  if (!restaurando) { msgsSalvas.push({role, texto, time: t, comBotoes: !!comBotoes}); salvarLocal(); }
-}
-
-function addToast(texto, pagData) {
-  const row = document.createElement("div");
-  row.className = "toast-row";
-  if (pagData) {
-    row.innerHTML = '<div class="toast-pill toast-clicavel" title="Toque para enviar comprovante no WhatsApp">🧾 ' + texto + '</div>';
-    row.querySelector(".toast-pill").addEventListener("click", () => enviarComprovanteWpp(pagData.phone, pagData.nome, pagData.valor, pagData.novoSaldo, pagData.novTk, pagData.novDi));
-  } else {
-    row.innerHTML = '<div class="toast-pill">' + texto + '</div>';
-  }
-  msgs().insertBefore(row, document.getElementById("typing"));
-  rolar();
-  if (!restaurando) { msgsSalvas.push({toast: true, texto, pagData: pagData || null}); salvarLocal(); }
-}
-
-async function carregarClientes() {
-  if (clientesCache) return clientesCache;
-  const data = await sbGet("clientes");
-  clientesCache = Array.isArray(data) ? data : [];
-  return clientesCache;
-}
-
-function normStr(s) {
-  return (s||"").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").trim();
-}
-
-// Similaridade entre dois nomes (0 a 1)
-function sim(a, b) {
-  a = normStr(a); b = normStr(b);
-  if (a === b) return 1;
-  const pa = a.split(" ")[0], pb = b.split(" ")[0];
-  if (pa === pb) return 0.95;
-  if (b.includes(a) || a.includes(b)) return 0.9;
-  // letras em comum no primeiro nome
-  let comum = 0;
-  for (const ch of pa) { if (pb.includes(ch)) comum++; }
-  return comum / Math.max(pa.length, pb.length, 1);
-}
-
-// Retorna { exato:true, cliente } ou { exato:false, sugestoes:[] } ou null
-function encontrarCliente(clientes, nome) {
-  const n = normStr(nome);
-  const norm = s => normStr(s);
-  let c = clientes.find(x => norm(x.name) === n);
-  if (c) return { exato:true, cliente:c };
-  c = clientes.find(x => norm(x.name).startsWith(n));
-  if (c) return { exato:true, cliente:c };
-  c = clientes.find(x => norm(x.name).includes(n));
-  if (c) return { exato:true, cliente:c };
-  // fuzzy
-  const ranked = clientes
-    .map(x => ({ cliente:x, score:sim(nome, x.name) }))
-    .filter(x => x.score >= 0.5)
-    .sort((a,b) => b.score - a.score)
-    .slice(0, 3);
-  if (ranked.length) return { exato:false, sugestoes:ranked.map(x=>x.cliente) };
-  return null;
-}
-
-// ── PAGAMENTO (identico ao ADM) ──
-async function executarPagamento(phone, val, pixDados) {
-  const dados = await sbGet("clientes", { phone });
-  const c = Array.isArray(dados) ? dados[0] : null;
-  if (!c) throw new Error("Cliente nao encontrado.");
-
-  const novoSaldo = Number(c.debt||0) - val;
-  const [cfgTk, cfgDi] = await Promise.all([
-    sbGet("configs", { key:"ticket_valor_reais" }),
-    sbGet("configs", { key:"diamante_valor_reais" }),
-  ]);
-  const vTk = cfgTk[0]?.value ? Number(cfgTk[0].value) : 0;
-  const vDi = cfgDi[0]?.value ? Number(cfgDi[0].value) : 0;
-  const acum   = Number(c.total_acumulado||0) + val;
-  const novTk  = vTk > 0 ? Math.floor(acum / vTk) : 0;
-  const sobra  = vTk > 0 ? acum % vTk : acum;
-  const novDi  = vDi > 0 ? Math.floor(val / vDi) : 0;
-
-  await sbUpdate("clientes", { phone }, {
-    debt:            novoSaldo,
-    tickets:         (Number(c.tickets||0))   + novTk,
-    diamantes:       (Number(c.diamantes||0)) + novDi,
-    total_acumulado: sobra,
-  });
-
-  const dh = dataHoraSP();
-  const saldoTexto = novoSaldo > 0
-    ? "Saldo devedor restante: R$ " + novoSaldo.toFixed(2).replace(".",",")
-    : novoSaldo < 0
-      ? "Credito a favor: R$ " + Math.abs(novoSaldo).toFixed(2).replace(".",",")
-      : "Quitado";
-
-  const miolo = "──────────────────\nCliente: " + c.name + "\nData/Hora: " + dh + "\nValor pago: R$ " + val.toFixed(2).replace(".",",") + "\n" + saldoTexto + "\n──────────────────";
-  await sbInsert("notificacoes", { customer_phone:phone, tipo:"pagamento", valor:val, comprovante:miolo });
-
-  // ── REGISTRAR NA TABELA pagamentos_pix ──
-  // Se veio da URL, checa se já foi registrado pelo pix.html (ADM) antes de inserir
-  const agora2  = new Date();
-  const dataPix = (pixDados && pixDados.data) || agora2.toLocaleDateString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", year:"2-digit" });
-  const horaPix = (pixDados && pixDados.hora) || agora2.toLocaleTimeString("pt-BR", { timeZone:"America/Sao_Paulo", hour:"2-digit", minute:"2-digit" });
-  try {
-    // Se tem dados da URL, verifica se já existe registro com esses dados (inserido pelo pix.html)
-    let jaExiste = false;
-    if (pixDados && pixDados.data && pixDados.hora) {
-      const checkUrl = SUPABASE_URL + "/rest/v1/pagamentos_pix?select=phone&valor=eq." + val + "&data_pix=eq." + encodeURIComponent(dataPix) + "&hora_pix=eq." + encodeURIComponent(horaPix) + "&limit=1";
-      const checkRes = await (await fetch(checkUrl, { headers: SB_H })).json();
-      jaExiste = Array.isArray(checkRes) && checkRes.length > 0;
-    }
-    if (!jaExiste) {
-      await sbInsert("pagamentos_pix", {
-        phone:         phone,
-        valor:         val,
-        data_pix:      dataPix,
-        hora_pix:      horaPix,
-        destino:       (pixDados && pixDados.destino) || "O Rei da Coxinha",
-        remetente_pix: (pixDados && pixDados.nomeUrl) || c.name,
-        adm:           true
-      });
-    }
-  } catch(e) { console.warn("Aviso: nao foi possivel registrar em pagamentos_pix", e); }
-
-  clientesCache = null;
-  return { nome:c.name, novoSaldo, saldoTexto, novTk, novDi };
-}
-
-// ── COMPROVANTE WHATSAPP ──
-function enviarComprovanteWpp(phone, nome, valor, novoSaldo, novTk, novDi) {
-  const dh = dataHoraSP();
-  let saldoLinha;
-  if (novoSaldo > 0)      saldoLinha = "⚠️ Saldo devedor restante: R$ " + novoSaldo.toFixed(2).replace(".",",");
-  else if (novoSaldo < 0) saldoLinha = "💚 Crédito a favor: R$ " + Math.abs(novoSaldo).toFixed(2).replace(".",",");
-  else                    saldoLinha = "✅ Conta quitada ♻️";
-
-  let extras = "";
-  if (novTk > 0) extras += "\n🎟️ +" + novTk;
-  if (novDi > 0) extras += "\n💎 +" + novDi;
-
-  const msg =
-    "👽 *𝕕𝕚𝕟𝕠 𝕚.𝕒* ᵃᵈᵐⁱⁿⁱˢᵗʳᵃᵈᵒʳ\n" +
-    "aqui está seu comprovante de pagamento.\n" +
-    "*O Rei da Coxinha* 🍗\n" +
-    "──────────────────\n" +
-    "👤 Cliente: " + nome + "\n" +
-    "📅 Data/Hora: " + dh + "\n" +
-    "💰 Valor pago: R$ " + valor.toFixed(2).replace(".",",") + "\n\n" +
-    saldoLinha + "\n" +
-    "──────────────────" + extras + "\n" +
-    "👽 Obrigado pelo pagamento!";
-
-  const tel = String(phone).replace(/\D/g, "");
-  const link = "https://wa.me/" + (tel.startsWith("55") ? tel : "55" + tel) + "?text=" + encodeURIComponent(msg);
-  window.open(link, "_blank");
-}
-
-// ── CONFIRMAR / CANCELAR ──
-async function confirmarPendente() {
-  if (!pendente) return;
-  document.querySelectorAll(".confirm-btns").forEach(el => el.remove());
-
-  // ── EXCLUIR PEDIDO ──
-  if (pendente.tipo === "excluir_pedido") {
-    const { pedido, cliente } = pendente;
-    pendente = null;
-    setStatus(true);
-    document.getElementById("typing").style.display = "flex";
-    rolar();
-    try {
-      const total = Number(pedido.total || 0);
-      // Busca dados atuais do cliente
-      const dados = await sbGet("clientes", { phone: cliente.phone });
-      const c = Array.isArray(dados) ? dados[0] : null;
-      if (!c) throw new Error("Cliente não encontrado.");
-      const novoDebt = Number(c.debt || 0) - total;
-      await sbUpdate("clientes", { phone: cliente.phone }, { debt: novoDebt });
-      await sbDelete("pedidos", { id: pedido.id });
-      clientesCache = null;
-      document.getElementById("typing").style.display = "none";
-      const saldoTexto = novoDebt > 0
-        ? "Débito restante: R$ " + novoDebt.toFixed(2).replace(".",",")
-        : novoDebt < 0
-          ? "Crédito gerado: R$ " + Math.abs(novoDebt).toFixed(2).replace(".",",")
-          : "Conta zerada";
-      const msg = "🗑️ Pedido de " + cliente.name + " excluído.\n\nR$ " + total.toFixed(2).replace(".",",") + " creditado na conta.\n" + saldoTexto;
-      addMsg("bot", msg);
-      historico.push({ role:"assistant", content: msg });
-      // Remove pedido da lista inline
-      if (pedidosInline) {
-        pedidosInline.rows = pedidosInline.rows.filter(r => r.id !== pedido.id);
-      }
-    } catch(e) {
-      document.getElementById("typing").style.display = "none";
-      addMsg("bot", "Erro ao excluir: " + e.message);
-    } finally {
-      setStatus(false);
-      ocupado = false;
-    }
-    return;
-  }
-
-  const { cliente, valor, zerarCredito, pixDados: pixDadosPendente } = pendente;
-  pendente = null;
-  setStatus(true);
-  document.getElementById("typing").style.display = "flex";
-  rolar();
-  try {
-    if (zerarCredito) {
-      await sbUpdate("clientes", { phone: cliente.phone }, { debt: 0 });
-      clientesCache = null;
-      document.getElementById("typing").style.display = "none";
-      addToast("✅ Crédito zerado ♻️");
-      historico.push({ role:"assistant", content:"Crédito zerado." });
-    } else {
-      const res = await executarPagamento(cliente.phone, valor, pixDadosPendente || pixDadosUrl);
-      document.getElementById("typing").style.display = "none";
-      addToast("♻️ comprovante", { phone: cliente.phone, nome: res.nome, valor, novoSaldo: res.novoSaldo, novTk: res.novTk, novDi: res.novDi });
-      historico.push({ role:"assistant", content: "✅ " + res.nome });
-    }
-  } catch(e) {
-    document.getElementById("typing").style.display = "none";
-    addMsg("bot", "Erro: " + e.message);
-  } finally {
-    setStatus(false);
-    ocupado = false;
-  }
-}
-
-function cancelarPendente() {
-  const btns = document.querySelectorAll(".confirm-btns");
-  btns.forEach(el => {
-    const span = document.createElement("span");
-    span.textContent = "Cancelado";
-    span.style.cssText = "display:block;color:#f87171;font-size:11px;margin-top:6px;";
-    el.replaceWith(span);
-  });
-  // salva o cancelado no histórico local
-  const idx = [...msgsSalvas].map(m => m.comBotoes).lastIndexOf(true);
-  if (idx !== -1) { msgsSalvas[idx].cancelado = true; salvarLocal(); }
-  pendente = null;
-  pendenteSug = null;
-  ocupado = false;
-  historico.push({ role:"assistant", content:"Cancelado." });
-}
-
-// ── BYPASS POR REGEX (evita falhas da IA em casos óbvios) ──
-function detectarPorRegex(texto) {
-  const t = normStr(texto);
-
-  // helper: extrai nome após preposição
-  function extrairNome(str) {
-    const m = str.match(/\b(?:de|do|da|dos|das|pra|para)\s+([a-záàâãéêíóôõúç][a-záàâãéêíóôõúç\s]{1,40}?)(?:\s+de\s+\d|$)/i);
-    return m ? m[1].trim() : "";
-  }
-
-  // helper: extrai filtro de data ISO a partir do texto
-  function extrairFiltroData(str) {
-    const datas = [...texto.matchAll(/(\d{2}\/\d{2}\/\d{2,4})/g)].map(m => m[1]);
-    const toISO = ds => { const [d,m,a] = ds.split("/"); const ano = a.length===2?"20"+a:a; return ano+"-"+m+"-"+d; };
-    if (datas.length >= 2) return { inicio: toISO(datas[0])+"T00:00:00", fim: toISO(datas[1])+"T23:59:59" };
-    if (datas.length === 1) return { inicio: toISO(datas[0])+"T00:00:00", fim: toISO(datas[0])+"T23:59:59" };
-    const spNow = () => new Date(new Date().toLocaleString("en-US",{timeZone:"America/Sao_Paulo"}));
-    const isoFmt = d => d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
-    if (/\bhoje\b/.test(str)) { const d=spNow(); const s=isoFmt(d); return {inicio:s+"T00:00:00-03:00",fim:s+"T23:59:59-03:00"}; }
-    if (/\bontem\b/.test(str)) { const d=spNow(); d.setDate(d.getDate()-1); const s=isoFmt(d); return {inicio:s+"T00:00:00-03:00",fim:s+"T23:59:59-03:00"}; }
-    if (/\b(essa|esta)\s+semana\b/.test(str)) {
-      const d=spNow(); const dow=d.getDay();
-      const ini=new Date(d); ini.setDate(d.getDate()-dow);
-      const fim=new Date(d); fim.setDate(d.getDate()+(6-dow));
-      return {inicio:isoFmt(ini)+"T00:00:00-03:00",fim:isoFmt(fim)+"T23:59:59-03:00"};
-    }
-    const mDias = str.match(/[uú]ltimos?\s+(\d+)\s*(dia[s]?|semana[s]?|m[eê]s|meses)/);
-    if (mDias) {
-      let dias=parseInt(mDias[1]);
-      if (/semana/.test(mDias[2])) dias*=7;
-      if (/m[eê]s|meses/.test(mDias[2])) dias*=30;
-      const hoje=spNow(); const ini=new Date(hoje); ini.setDate(hoje.getDate()-dias);
-      return {inicio:isoFmt(ini)+"T00:00:00-03:00",fim:isoFmt(hoje)+"T23:59:59-03:00"};
-    }
-    const mPed = str.match(/[uú]ltimos?\s+(\d+)\s*pedidos?/);
-    if (mPed) return { limite: parseInt(mPed[1]) };
-    return null;
-  }
-
-  // ── COMPROVANTE(S) ──
-  if (/comprovante[s]?|historico\s+de\s+pagamento[s]?/.test(t)) {
-    const nome = extrairNome(t);
-    const obj = { acao:"comprovantes", cliente: nome };
-    const filtro = extrairFiltroData(t);
-    if (filtro) {
-      // converte ISO de volta para DD/MM/AAAA que o handler espera
-      const isoToStr = s => { const [a,m,d] = s.split("T")[0].split("-"); return d+"/"+m+"/"+a; };
-      obj.data_inicio = isoToStr(filtro.inicio);
-      obj.data_fim    = isoToStr(filtro.fim);
-    }
-    return obj;
-  }
-
-  // ── PAGAMENTO: pagou / lança / quita / quitou / quitado / pago ──
-  if (/\bpagou\b|\blanca\b|\blança\b|\bquita\b|\bquitou\b|\bquitado\b|\bpago\b/.test(t)) {
-    const mVal = texto.match(/\b(\d+(?:[.,]\d{1,2})?)\b/);
-    const valor = mVal ? parseFloat(mVal[1].replace(",",".")) : 0;
-    const mNome = t.match(/^([a-záàâãéêíóôõúç][a-záàâãéêíóôõúç\s]{1,30}?)\s+(?:pagou|pago|quitou|quitado)/i)
-                || t.match(/(?:de|do|da)\s+([a-záàâãéêíóôõúç][a-záàâãéêíóôõúç\s]{1,30}?)(?:\s|$)/i);
-    const cliente = mNome ? mNome[1].trim() : "";
-    return { acao:"pagamento", cliente, valor };
-  }
-
-  // ── DÍVIDA / DÉBITO / SALDO de alguém específico ──
-  const temPessoa = /\b(?:de|do|da)\s+[a-záàâãéêíóôõúç]/.test(t);
-  if (/d[ií]vida[s]?|d[eé]bito[s]?|saldo\s+(?:de|do|da)|quanto\s+(?:deve|ta\s+devendo|esta\s+devendo)/.test(t) && temPessoa) {
-    return { acao:"consulta", cliente: extrairNome(t) };
-  }
-
-  // ── LISTA DEVEDORES ──
-  if (/d[ií]vida[s]?|d[eé]bito[s]?|devendo|devedor[es]?|quem\s+deve/.test(t) && !temPessoa) {
-    return { acao:"lista_devedores" };
-  }
-
-  // ── LISTA CREDORES ──
-  if (/cr[eé]dito[s]?/.test(t) && !temPessoa) {
-    return { acao:"lista_credores" };
-  }
-
-  // ── QUEM TEM / FEZ PEDIDO ──
-  if (/quem\s+(tem|fez|fiz|efetuou|realizou|mandou|colocou)?\s*pedido[s]?/.test(t) ||
-      /pedido[s]?\s+(de\s+hoje|hoje|do\s+dia)/.test(t)) {
-    const hoje = /hoje|do\s+dia|de\s+hoje/.test(t);
-    return { acao:"lista_pedidos_clientes", hoje };
-  }
-
-  // ── PEDIDO: ver / editar / listar todos ──
-  // Palavras que ativam este bloco:
-  const toquePedido = /\bpedidos?\b|\bmanda\s+o\s+pedido\b|\bmande\s+o\s+pedido\b|\bme\s+manda\s+o\s+pedido\b|\bme\s+mande\s+o\s+pedido\b/.test(t);
-  if (toquePedido) {
-    const nome = extrairNome(t);
-    const filtro = extrairFiltroData(t);
-
-    // Editar: palavras explícitas de modificação
-    if (/\beditar\b|\balterar\b|\bmudar\b|\bmodificar\b|\batualizar\b/.test(t)) {
-      return { acao:"editar_pedido", cliente: nome, filtroData: filtro };
-    }
-    // Histórico / todos
-    if (/\btodos\b|\blistar\b|\bhistorico\b|\bhist[oó]rico\b|\btodas\b/.test(t)) {
-      return { acao:"listar_pedidos", cliente: nome, filtroData: filtro };
-    }
-    // Ver: palavras de visualização, envio, compartilhamento
-    // "mostrar", "me manda", "me mande", "manda", "ver", "qual", "enviar", "compartilhar"
-    if (/\bver\b|\bveja\b|\bmostr[ae]\b|\bqual\b|\bquais\b|\bmanda\b|\bmande\b|\bme\s+manda\b|\bme\s+mande\b|\bcompartilh[ae]\b|\benvie?\b|\benviar\b/.test(t)) {
-      return { acao:"ver_pedido", cliente: nome, filtroData: filtro };
-    }
-    // genérico com nome → ver
-    if (nome) return { acao:"ver_pedido", cliente: nome, filtroData: filtro };
-  }
-
-  return null;
-}
-
-// ── IA ──
-async function detectarIntencao(texto) {
-  // Tenta regex primeiro (mais rápido e confiável para casos claros)
-  const regexResult = detectarPorRegex(texto);
-  if (regexResult) return regexResult;
-
-  // ── Saudações e respostas genéricas → responde localmente sem chamar a IA ──
-  const t0 = normStr(texto);
-  const saudacoes = /^(oi+|ola+|ol[aá]|hey|e a[ií]|ta a[ií]|ta ai|ta aqui|vc ta ai|vc esta ai|vc esta aqui|voce esta ai|voce ta ai|esta ai|tudo bem|tudo bom|bom dia|boa tarde|boa noite|ok|certo|blz|beleza|valeu|obrigad[oa]|otimo|perfeito|entendi|sim|nao|nao entendi|teste|test|funcionando|funciona)\.?!?$/;
-  if (saudacoes.test(t0)) {
-    const respostas = ["Olá! Como posso ajudar?","Oi! O que precisa?","Estou aqui.","Pode falar.","Oi!","Olá!"];
-    return { acao:"outro", resposta: respostas[Math.floor(Math.random() * respostas.length)] };
-  }
-
-  const system = `Assistente do "O Rei da Coxinha". Identifica a intenção da mensagem.
-Responda SOMENTE JSON puro, sem markdown.
-Pagamento/quitação: {"acao":"pagamento","cliente":"NOME","valor":NUMERO}
-Valor 0 se não mencionado ou "quitar/zerar": {"acao":"pagamento","cliente":"NOME","valor":0}
-Consulta de saldo de UM cliente: {"acao":"consulta","cliente":"NOME"}
-Listar TODOS devedores (sem nome): {"acao":"lista_devedores"}
-Listar TODOS credores (sem nome): {"acao":"lista_credores"}
-Comprovantes de cliente: {"acao":"comprovantes","cliente":"NOME","data_inicio":"DD/MM/AAAA","data_fim":"DD/MM/AAAA"}
-Ver pedido de cliente: {"acao":"ver_pedido","cliente":"NOME"}
-Editar/alterar pedido de cliente: {"acao":"editar_pedido","cliente":"NOME"}
-Listar todos os pedidos de cliente: {"acao":"listar_pedidos","cliente":"NOME"}
-Quem fez/tem pedido (todos ou hoje): {"acao":"lista_pedidos_clientes","hoje":false} ou {"acao":"lista_pedidos_clientes","hoje":true}
-Outro: {"acao":"outro","resposta":"resposta curta"}
-"cliente" deve ser nome de pessoa, nunca frase longa.
-Erros de digitação: "duvida"="divida", "clente"="cliente", "creditu"="credito", "peddo"="pedido".`;
-
-  try {
-    // Envia só a mensagem atual — sem histórico (intenção é autocontida)
-    const resultado = await geminiRequest(system, [{ role:"user", content:texto }]);
-    if (resultado.erro) return { acao:"outro", resposta: resultado.erro };
-
-    const raw = resultado.texto.trim();
-    const match = raw.match(/\{[\s\S]*\}/);
-    if (match) {
-      try {
-        const parsed = JSON.parse(match[0]);
-        if (parsed.cliente && parsed.cliente.length > 40) {
-          return { acao:"outro", resposta:"Nao entendi. Pode informar o nome do cliente?" };
-        }
-        return parsed;
-      } catch(e) {
-        // JSON malformado — usa texto bruto como resposta
-        return { acao:"outro", resposta: raw.replace(/[{}]/g,"").trim() || "Nao entendi." };
-      }
-    }
-    // Gemini respondeu mas sem JSON — usa o texto diretamente
-    if (raw.length > 0 && raw.length < 400) {
-      return { acao:"outro", resposta: raw };
-    }
-  } catch(e) {}
-  return { acao:"outro", resposta:"Nao consegui processar. Tente novamente." };
-}
-
-// ── VERIFICAR SE RESPOSTA E ESCOLHA DE SUGESTAO ──
-function resolverSugestao(texto, sugestoes) {
-  const num = parseInt(texto.trim());
-  if (!isNaN(num) && num >= 1 && num <= sugestoes.length) return sugestoes[num-1];
-  return null;
-}
-
-// ── ENVIAR ──
-async function enviar() {
-  const input = document.getElementById("msg-input");
-  const texto = input.value.trim();
-  if (!texto) return;
-  input.value = "";
-  input.style.height = "auto";
-  atualizarBotoesBarra();
-  addMsg("user", texto);
-  historico.push({ role:"user", content:texto });
-  await processarTexto(texto);
-}
-
-async function processarTexto(texto) {
-
-  // ── GARANTE pixDadosUrl ATUALIZADO COM A URL ATUAL ──
-  if (!pixDadosUrl) {
-    const pixUrl = lerPixDaURL();
-    if (pixUrl) pixDadosUrl = { data: pixUrl.data, hora: pixUrl.hora, nomeUrl: pixUrl.remetente, destino: pixUrl.destino };
-  }
-
-  // ── DETECTA LINK PIX COLADO ──────────────────────────────────
-  // Aceita: "?39,90=18/04/26=12:58=Anderson=Gomes" ou URL completa
-  const pixMatch = texto.match(/[?&]?(\d+[,\.]\d{2})=(\d{2}\/\d{2}\/\d{2,4})=(\d{2}:\d{2}(?::\d{2})?)=([A-Za-zÀ-ú]+)=([A-Za-zÀ-ú]+)/);
-  if (pixMatch && !pendenteSug && !pendente && !ocupado) {
-    const valorNum  = parseFloat(pixMatch[1].replace(',','.'));
-    const data      = pixMatch[2];
-    const hora      = pixMatch[3];
-    const nomeUrl   = pixMatch[4] + ' ' + pixMatch[5];
-
-    ocupado = true;
-    setStatus(true);
-    document.getElementById("typing").style.display = "flex";
-    rolar();
-
-    try {
-      const clientes = await carregarClientes();
-      document.getElementById("typing").style.display = "none";
-
-      const resultado = encontrarCliente(clientes, nomeUrl);
-
-      if (!resultado) {
-        const resp = "Recebi o PIX de R$ " + valorNum.toFixed(2).replace('.',',') + " (" + data + " às " + hora + ").\nNão encontrei nenhum cliente com o nome \"" + nomeUrl + "\". Qual o nome correto?";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content: resp });
-        pendenteSug = { acao:"pagamento_pix", sugestoes:[], valor:valorNum, data, hora, nomeUrl };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      if (resultado.exato) {
-        const c = resultado.cliente;
-        const debtAtual = Number(c.debt||0);
-        const novoSaldo = debtAtual - valorNum;
-        const saldoDepois = novoSaldo > 0 ? "Saldo após: R$ " + novoSaldo.toFixed(2).replace('.',',') : novoSaldo < 0 ? "Crédito após: R$ " + Math.abs(novoSaldo).toFixed(2).replace('.',',') : "Conta quitada";
-        pendente = { cliente:c, valor:valorNum, pixDados:{ data, hora, nomeUrl, destino: pixDadosUrl?.destino || 'Jefferson Leandro (via picpay)' } };
-        const msg = "💸 PIX recebido!\n\nRemetente: " + nomeUrl + "\nValor: R$ " + valorNum.toFixed(2).replace('.',',') + "\nData: " + data + " às " + hora + "\n\nRegistrar para " + c.name + "?\nDébito atual: R$ " + debtAtual.toFixed(2).replace('.',',') + "\n" + saldoDepois;
-        addMsg("bot", msg, true);
-        historico.push({ role:"assistant", content: msg });
-        ocupado = true;
-        setStatus(false);
-        return;
-      }
-
-      // Fuzzy — mostra sugestões
-      const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-      const resp = "💸 PIX de R$ " + valorNum.toFixed(2).replace('.',',') + " (" + data + " às " + hora + ")\nRemetente: " + nomeUrl + "\n\nNão achei esse cliente. Quem é?\n\n" + lista + "\n\nResponda com o número ou digite outro nome.";
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content: resp });
-      pendenteSug = { acao:"pagamento_pix", sugestoes:resultado.sugestoes, valor:valorNum, data, hora, nomeUrl };
-      ocupado = false; setStatus(false);
-    } catch(e) {
-      document.getElementById("typing").style.display = "none";
-      addMsg("bot", "Erro ao processar PIX: " + e.message);
-      ocupado = false; setStatus(false);
-    }
-    return;
-  }
-
-  // ── SE TINHA SUGESTÃO PIX PENDENTE ──────────────────────────
-  if (pendenteSug && pendenteSug.acao === "pagamento_pix") {
-    let escolha = resolverSugestao(texto, pendenteSug.sugestoes);
-
-    // Se não escolheu número → trata como novo nome e busca no banco
-    if (!escolha) {
-      const clientes = await carregarClientes();
-      const resultado = encontrarCliente(clientes, texto);
-      if (resultado && resultado.exato) {
-        escolha = resultado.cliente;
-      } else if (resultado && !resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const { valor, data, hora, nomeUrl } = pendenteSug;
-        const novaResp = "Não achei \"" + texto + "\" exato. Quem você quis dizer?\n\n" + lista + "\n\nResponda com o número ou outro nome.";
-        pendenteSug = { acao:"pagamento_pix", sugestoes:resultado.sugestoes, valor, data, hora, nomeUrl };
-        addMsg("bot", novaResp);
-        historico.push({ role:"assistant", content:novaResp });
-        ocupado = false; setStatus(false);
-        return;
-      } else {
-        pendenteSug = null;
-        const semResp = "Não encontrei nenhum cliente com esse nome.";
-        addMsg("bot", semResp);
-        historico.push({ role:"assistant", content:semResp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-    }
-
-    if (escolha) {
-      const { valor, data, hora, nomeUrl } = pendenteSug;
-      pendenteSug = null;
-      const debtAtual = Number(escolha.debt||0);
-      const novoSaldo = debtAtual - valor;
-      const saldoDepois = novoSaldo > 0 ? "Saldo após: R$ " + novoSaldo.toFixed(2).replace('.',',') : novoSaldo < 0 ? "Crédito após: R$ " + Math.abs(novoSaldo).toFixed(2).replace('.',',') : "Conta quitada";
-      pendente = { cliente:escolha, valor, pixDados:{ data, hora, nomeUrl, destino: pixDadosUrl?.destino || 'Jefferson Leandro (via picpay)' } };
-      const msg = "Confirmar pagamento?\n\n" + escolha.name + "\nValor: R$ " + valor.toFixed(2).replace('.',',') + "\nDébito atual: R$ " + debtAtual.toFixed(2).replace('.',',') + "\n" + saldoDepois;
-      addMsg("bot", msg, true);
-      historico.push({ role:"assistant", content: msg });
-      ocupado = true;
-      return;
-    } else {
-      pendenteSug = null;
-      addMsg("bot", "Ok, cancelado.");
-      historico.push({ role:"assistant", content:"Ok, cancelado." });
-    }
-  }
-
-  if (pendenteSug) {
-    // ── ESCOLHA DE PEDIDO (editar / excluir) ──
-    if (pendenteSug.acao === "escolher_editar" || pendenteSug.acao === "escolher_excluir") {
-      const num = parseInt(texto.trim());
-      const { pedidos, cliente, cardapioArr, acao } = pendenteSug;
-      if (isNaN(num) || num < 1 || num > pedidos.length) {
-        const resp = "Digite um número de 1 a " + pedidos.length + ".";
-        addMsg("bot", resp); historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-      const pedidoEscolhido = pedidos[num - 1];
-      pendenteSug = null;
-      document.getElementById("typing").style.display = "none";
-      if (acao === "escolher_editar") {
-        const itens = parsePedidoTexto(pedidoEscolhido.items, cardapioArr);
-        pedidoAtual = { cliente, pedido: pedidoEscolhido, itens: JSON.parse(JSON.stringify(itens)), cardapio: cardapioArr, editavel: true };
-        renderModalPedido();
-        document.getElementById("pedido-overlay").classList.add("open");
-      } else {
-        const total = Number(pedidoEscolhido.total || 0);
-        const msg = "Excluir Pedido " + num + " de " + cliente.name + "?\n\nTotal: R$ " + total.toFixed(2).replace(".",",") + " será creditado na conta.\n\nEssa ação não pode ser desfeita.";
-        pendente = { tipo: "excluir_pedido", pedido: pedidoEscolhido, cliente };
-        addMsg("bot", msg, true);
-        historico.push({ role:"assistant", content: msg });
-        ocupado = true;
-      }
-      return;
-    }
-
-    let escolha = resolverSugestao(texto, pendenteSug.sugestoes);
-
-    // Se não escolheu número → trata como novo nome e busca no banco
-    if (!escolha) {
-      const clientes = await carregarClientes();
-      const resultado = encontrarCliente(clientes, texto);
-      if (resultado && resultado.exato) {
-        escolha = resultado.cliente;
-      } else if (resultado && !resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const novaResp = "Não achei \"" + texto + "\" exato. Quem você quis dizer?\n\n" + lista + "\n\nResponda com o número ou outro nome.";
-        pendenteSug = { sugestoes:resultado.sugestoes, valor: pendenteSug.valor };
-        addMsg("bot", novaResp);
-        historico.push({ role:"assistant", content:novaResp });
-        ocupado = false; setStatus(false);
-        return;
-      } else {
-        pendenteSug = null;
-        const semResp = "Não encontrei nenhum cliente com esse nome.";
-        addMsg("bot", semResp);
-        historico.push({ role:"assistant", content:semResp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-    }
-
-    if (escolha) {
-
-      // ── Rota: comprovantes ──
-      if (pendenteSug.acao === "comprovantes") {
-        const { data_inicio, data_fim } = pendenteSug;
-        pendenteSug = null;
-        ocupado = true;
-        setStatus(true);
-        document.getElementById("typing").style.display = "flex";
-        rolar();
-        try {
-          let url = SUPABASE_URL + "/rest/v1/pagamentos_pix?select=*&phone=eq." + encodeURIComponent(escolha.phone) + "&order=created_at.asc";
-          // Filtra por created_at (timestamp real) em vez de data_pix (texto inconsistente)
-          if (data_inicio) { const [d,m,a] = data_inicio.split("/"); const ano = a.length===2?"20"+a:a; url += "&created_at=gte." + encodeURIComponent(ano+"-"+m+"-"+d+"T00:00:00"); }
-          if (data_fim)    { const [d,m,a] = data_fim.split("/");    const ano = a.length===2?"20"+a:a; url += "&created_at=lte." + encodeURIComponent(ano+"-"+m+"-"+d+"T23:59:59"); }
-          const comprovantes = await (await fetch(url, { headers: SB_H })).json();
-          document.getElementById("typing").style.display = "none";
-          if (!Array.isArray(comprovantes) || comprovantes.length === 0) {
-            const resp = "Nenhum comprovante encontrado para " + escolha.name + (data_inicio ? " no período informado" : "") + ".";
-            addMsg("bot", resp); historico.push({ role:"assistant", content:resp });
-          } else {
-            const total = comprovantes.reduce((acc, c) => acc + Number(c.valor||0), 0);
-            const lista = comprovantes.map(c => {
-              const emissor = c.adm ? "ᵉᵐⁱˢˢᵒʳ* ᵃᵈᵐⁱⁿ" : "ᵉᵐⁱˢˢᵒʳ* ᶜˡⁱᵉⁿᵗᵉ";
-              return "──────────────────\n👤 Cliente: " + escolha.name + "\n📅 Data/Hora: " + c.data_pix + ", " + c.hora_pix + "\n💰 Valor pago: R$ " + Number(c.valor).toFixed(2).replace(".",",") + "\n" + emissor + "\n──────────────────";
-            }).join("\n");
-            const resp = "Comprovantes de " + escolha.name + " (" + comprovantes.length + "):\n\n" + lista + "\n\nTotal: R$ " + total.toFixed(2).replace(".",",");
-            addMsg("bot", resp); historico.push({ role:"assistant", content:resp });
-          }
-        } catch(e) {
-          document.getElementById("typing").style.display = "none";
-          addMsg("bot", "Erro: " + e.message);
-        } finally { ocupado = false; setStatus(false); }
-        return;
-      }
-
-      // ── Rota: ver_pedido / editar_pedido ──
-      if (pendenteSug.acao === "ver_pedido" || pendenteSug.acao === "editar_pedido") {
-        const filtro = pendenteSug.filtroData || null;
-        const editar = pendenteSug.acao === "editar_pedido";
-        pendenteSug = null;
-        ocupado = false; setStatus(false);
-        await mostrarPedidosChat(escolha, filtro, editar);
-        return;
-      }
-
-      // ── Rota: listar_pedidos ──
-      if (pendenteSug.acao === "listar_pedidos") {
-        const filtro = pendenteSug.filtroData || null;
-        pendenteSug = null;
-        ocupado = false; setStatus(false);
-        await mostrarPedidosChat(escolha, filtro, false);
-        return;
-      }
-
-      // ── Rota: pagamento ──
-      const valor = pendenteSug.valor;
-      pendenteSug = null;
-      const debtAtual = Number(escolha.debt||0);
-      const valorFinal = (!valor || valor <= 0) ? debtAtual : valor;
-      if (debtAtual < 0 && valorFinal <= 0) {
-        const creditoFmt = "R$ " + Math.abs(debtAtual).toFixed(2).replace(".",",");
-        const msg = escolha.name + " está com " + creditoFmt + " de crédito. Quer zerar a conta?";
-        pendente = { cliente:escolha, valor:0, zerarCredito:true };
-        addMsg("bot", msg, true);
-        historico.push({ role:"assistant", content:msg });
-        ocupado = true;
-        return;
-      }
-      if (valorFinal <= 0) {
-        addMsg("bot", escolha.name + " não tem débito em aberto.");
-        return;
-      }
-      const novoSaldo = debtAtual - valorFinal;
-      const saldoDepois = novoSaldo > 0 ? "Saldo apos: R$ " + novoSaldo.toFixed(2).replace(".",",") : novoSaldo < 0 ? "Credito apos: R$ " + Math.abs(novoSaldo).toFixed(2).replace(".",",") : "Conta quitada";
-      pendente = { cliente:escolha, valor:valorFinal, pixDados: pixDadosUrl || null };
-      const msg = "Confirmar pagamento?\n\n" + escolha.name + "\nValor: R$ " + valorFinal.toFixed(2).replace(".",",") + "\nDebito atual: R$ " + debtAtual.toFixed(2).replace(".",",") + "\n" + saldoDepois;
-      addMsg("bot", msg, true);
-      historico.push({ role:"assistant", content:msg });
-      ocupado = true;
-      return;
-    } else {
-      pendenteSug = null;
-      // cai no fluxo normal abaixo
-    }
-  }
-
-  if (ocupado) return;
-  ocupado = true;
-  setStatus(true);
-  document.getElementById("typing").style.display = "flex";
-  rolar();
-
-  try {
-    const intencao = await detectarIntencao(texto);
-
-    if (intencao.acao === "pagamento") {
-      const clientes = await carregarClientes();
-      const resultado = encontrarCliente(clientes, intencao.cliente || "");
-      const valor = Number(intencao.valor) || 0;
-
-      if (!resultado) {
-        const resp = "Nao encontrei nenhum cliente com o nome \"" + intencao.cliente + "\". Verifique o nome e tente novamente.";
-        document.getElementById("typing").style.display = "none";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      // Fuzzy — mostra sugestoes
-      if (!resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const resp = "Não achei \"" + intencao.cliente + "\" exato. Quem você quis dizer?\n\n" + lista + "\n\nResponda com o número ou digite outro nome.";
-        document.getElementById("typing").style.display = "none";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        pendenteSug = { sugestoes:resultado.sugestoes, valor };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      // Achou exato
-      const cliente = resultado.cliente;
-      const debtAtual = Number(cliente.debt||0);
-      const valorFinal = (!valor || valor <= 0) ? debtAtual : valor;
-
-      // Cliente tem crédito (saldo negativo) — perguntar se quer zerar
-      if (debtAtual < 0 && valorFinal <= 0) {
-        const creditoFmt = "R$ " + Math.abs(debtAtual).toFixed(2).replace(".",",");
-        const msg = cliente.name + " está com " + creditoFmt + " de crédito. Quer zerar a conta?";
-        pendente = { cliente, valor:0, zerarCredito:true };
-        document.getElementById("typing").style.display = "none";
-        addMsg("bot", msg, true);
-        historico.push({ role:"assistant", content:msg });
-        return;
-      }
-
-      if (valorFinal <= 0) {
-        const resp = cliente.name + " não tem débito em aberto.";
-        document.getElementById("typing").style.display = "none";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      const novoSaldo = debtAtual - valorFinal;
-      const saldoDepois = novoSaldo > 0 ? "Saldo apos: R$ " + novoSaldo.toFixed(2).replace(".",",") : novoSaldo < 0 ? "Credito apos: R$ " + Math.abs(novoSaldo).toFixed(2).replace(".",",") : "Conta quitada";
-      pendente = { cliente, valor:valorFinal, pixDados: pixDadosUrl || null };
-      document.getElementById("typing").style.display = "none";
-      const msg = "Confirmar pagamento?\n\n" + cliente.name + "\nValor: R$ " + valorFinal.toFixed(2).replace(".",",") + "\nDebito atual: R$ " + debtAtual.toFixed(2).replace(".",",") + "\n" + saldoDepois;
-      addMsg("bot", msg, true);
-      historico.push({ role:"assistant", content:msg });
-      // ocupado = true ate confirmar/cancelar
-
-    } else if (intencao.acao === "consulta") {
-      const clientes = await carregarClientes();
-      const nomeQuery = intencao.cliente || "";
-      const resultado = nomeQuery ? encontrarCliente(clientes, nomeQuery) : null;
-      document.getElementById("typing").style.display = "none";
-
-      if (!resultado) {
-        const resp = nomeQuery
-          ? "Nao encontrei nenhum cliente com o nome \"" + nomeQuery + "\"."
-          : "Pode me dizer o nome do cliente?";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      if (!resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const resp = "Nao achei \"" + nomeQuery + "\" exato. Voce quis dizer?\n\n" + lista + "\n\nResponda com o nome ou numero.";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        pendenteSug = { sugestoes:resultado.sugestoes, valor:0 };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      const c = resultado.cliente;
-      const debt = Number(c.debt||0);
-      const saldoLinha = debt > 0
-        ? "Debito: R$ " + debt.toFixed(2).replace(".",",")
-        : debt < 0
-          ? "Credito: R$ " + Math.abs(debt).toFixed(2).replace(".",",")
-          : "Sem debito";
-      const resp = c.name + "\n" + saldoLinha + "\nTickets: " + (c.tickets||0) + "  Diamantes: " + (c.diamantes||0);
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "lista_devedores") {
-      const clientes = await carregarClientes();
-      const lista = clientes
-        .filter(c => Number(c.debt||0) > 0)
-        .sort((a,b) => Number(b.debt) - Number(a.debt));
-      document.getElementById("typing").style.display = "none";
-      let resp;
-      if (!lista.length) {
-        resp = "Nenhum cliente com dívida no momento! 🎉";
-      } else {
-        resp = "Clientes com dívida (" + lista.length + "):\n\n" +
-          lista.map((c,i) => (i+1) + ". " + c.name + " — R$ " + Number(c.debt).toFixed(2).replace(".",",")).join("\n");
-      }
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "lista_credores") {
-      const clientes = await carregarClientes();
-      const lista = clientes
-        .filter(c => Number(c.debt||0) < 0)
-        .sort((a,b) => Number(a.debt) - Number(b.debt));
-      document.getElementById("typing").style.display = "none";
-      let resp;
-      if (!lista.length) {
-        resp = "Nenhum cliente com crédito no momento.";
-      } else {
-        resp = "Clientes com crédito (" + lista.length + "):\n\n" +
-          lista.map((c,i) => (i+1) + ". " + c.name + " — R$ " + Math.abs(Number(c.debt)).toFixed(2).replace(".",",")).join("\n");
-      }
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "comprovantes") {
-      const clientes = await carregarClientes();
-      const nomeQuery = intencao.cliente || "";
-      const resultado = nomeQuery ? encontrarCliente(clientes, nomeQuery) : null;
-      document.getElementById("typing").style.display = "none";
-
-      if (!resultado) {
-        const resp = nomeQuery
-          ? "Nao encontrei nenhum cliente com o nome \"" + nomeQuery + "\"."
-          : "Pode me dizer o nome do cliente?";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      if (!resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const resp = "Nao achei \"" + nomeQuery + "\" exato. Voce quis dizer?\n\n" + lista + "\n\nResponda com o nome ou numero.";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        pendenteSug = { acao:"comprovantes", sugestoes:resultado.sugestoes, data_inicio:intencao.data_inicio||null, data_fim:intencao.data_fim||null };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      const cliente = resultado.cliente;
-
-      // Busca comprovantes na tabela pagamentos_pix
-      let url = SUPABASE_URL + "/rest/v1/pagamentos_pix?select=*&phone=eq." + encodeURIComponent(cliente.phone) + "&order=created_at.asc";
-      if (intencao.data_inicio) {
-        const [d1,m1,a1] = intencao.data_inicio.split("/"); const ano1 = a1.length===2?"20"+a1:a1;
-        url += "&created_at=gte." + encodeURIComponent(ano1+"-"+m1+"-"+d1+"T00:00:00");
-      }
-      if (intencao.data_fim) {
-        const [d2,m2,a2] = intencao.data_fim.split("/"); const ano2 = a2.length===2?"20"+a2:a2;
-        url += "&created_at=lte." + encodeURIComponent(ano2+"-"+m2+"-"+d2+"T23:59:59");
-      }
-      const comprovantes = await (await fetch(url, { headers: SB_H })).json();
-
-      if (!Array.isArray(comprovantes) || comprovantes.length === 0) {
-        const resp = "Nenhum comprovante encontrado para " + cliente.name + (intencao.data_inicio ? " no período informado" : "") + ".";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      const total = comprovantes.reduce((acc, c) => acc + Number(c.valor||0), 0);
-      const lista = comprovantes.map(c => {
-        const emissor = c.adm ? "ᵉᵐⁱˢˢᵒʳ* ᵃᵈᵐⁱⁿ" : "ᵉᵐⁱˢˢᵒʳ* ᶜˡⁱᵉⁿᵗᵉ";
-        return "──────────────────\n👤 Cliente: " + cliente.name + "\n📅 Data/Hora: " + c.data_pix + ", " + c.hora_pix + "\n💰 Valor pago: R$ " + Number(c.valor).toFixed(2).replace(".",",") + "\n" + emissor + "\n──────────────────";
-      }).join("\n");
-
-      const cabecalho = "Comprovantes de " + cliente.name + " (" + comprovantes.length + "):\n\n";
-      const rodape = "\n\nTotal: R$ " + total.toFixed(2).replace(".",",");
-      const resp = cabecalho + lista + rodape;
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "ver_pedido" || intencao.acao === "editar_pedido") {
-      const clientes = await carregarClientes();
-      const nomeQuery = intencao.cliente || "";
-      const resultado = nomeQuery ? encontrarCliente(clientes, nomeQuery) : null;
-      document.getElementById("typing").style.display = "none";
-
-      if (!resultado) {
-        const resp = nomeQuery
-          ? "Nao encontrei nenhum cliente com o nome \"" + nomeQuery + "\"."
-          : "Pode me dizer o nome do cliente?";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      if (!resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const resp = "Nao achei \"" + nomeQuery + "\" exato. Voce quis dizer?\n\n" + lista + "\n\nResponda com o nome ou numero.";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        pendenteSug = { acao: intencao.acao, sugestoes: resultado.sugestoes, filtroData: intencao.filtroData || null };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      const cliPed = resultado.cliente;
-      await mostrarPedidosChat(cliPed, intencao.filtroData || null, intencao.acao === "editar_pedido");
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "listar_pedidos") {
-      const clientes = await carregarClientes();
-      const nomeQuery = intencao.cliente || "";
-      const resultado = nomeQuery ? encontrarCliente(clientes, nomeQuery) : null;
-      document.getElementById("typing").style.display = "none";
-
-      if (!resultado) {
-        const resp = nomeQuery
-          ? "Nao encontrei nenhum cliente com o nome \"" + nomeQuery + "\"."
-          : "Pode me dizer o nome do cliente?";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      if (!resultado.exato) {
-        const lista = resultado.sugestoes.map((s,i) => (i+1) + ". " + s.name).join("\n");
-        const resp = "Nao achei \"" + nomeQuery + "\" exato. Voce quis dizer?\n\n" + lista + "\n\nResponda com o nome ou numero.";
-        addMsg("bot", resp);
-        historico.push({ role:"assistant", content:resp });
-        pendenteSug = { acao:"listar_pedidos", sugestoes: resultado.sugestoes, filtroData: intencao.filtroData || null };
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      await mostrarPedidosChat(resultado.cliente, intencao.filtroData || null, false);
-      ocupado = false; setStatus(false);
-
-    } else if (intencao.acao === "lista_pedidos_clientes") {
-      const hoje = !!intencao.hoje;
-      const clientes = await carregarClientes();
-      let url = SUPABASE_URL + "/rest/v1/pedidos?select=*&order=created_at.desc";
-      if (hoje) {
-        // filtra pelo dia de hoje em SP
-        const agSP = new Date(new Date().toLocaleString("en-US", { timeZone:"America/Sao_Paulo" }));
-        const iso  = agSP.getFullYear() + "-" + String(agSP.getMonth()+1).padStart(2,"0") + "-" + String(agSP.getDate()).padStart(2,"0");
-        url += "&created_at=gte." + encodeURIComponent(iso + "T00:00:00");
-      }
-      const rows = await (await fetch(url, { headers: SB_H })).json();
-      document.getElementById("typing").style.display = "none";
-
-      if (!Array.isArray(rows) || rows.length === 0) {
-        const resp = hoje ? "Nenhum pedido feito hoje." : "Nenhum pedido encontrado.";
-        addMsg("bot", resp); historico.push({ role:"assistant", content:resp });
-        ocupado = false; setStatus(false);
-        return;
-      }
-
-      // Agrupa por cliente (phone), pega o mais recente por cliente
-      const porCliente = {};
-      for (const r of rows) {
-        if (!porCliente[r.customer_phone]) porCliente[r.customer_phone] = r;
-      }
-      const phones = Object.keys(porCliente);
-      const linhas = phones.map((phone, i) => {
-        const cli = clientes.find(c => String(c.phone) === String(phone));
-        const nome = cli ? cli.name : phone;
-        const total = Number(porCliente[phone].total || 0).toFixed(2).replace(".",",");
-        return (i+1) + ". " + nome + " — R$ " + total;
-      });
-
-      const titulo = hoje
-        ? "📋 Pedidos de hoje (" + phones.length + "):\n\n"
-        : "📋 Clientes com pedido (" + phones.length + "):\n\n";
-      const resp = titulo + linhas.join("\n");
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-
-    } else {
-      document.getElementById("typing").style.display = "none";
-      const resp = intencao.resposta || "Não entendi. Pode reformular?";
-      addMsg("bot", resp);
-      historico.push({ role:"assistant", content:resp });
-      ocupado = false; setStatus(false);
-    }
-
-  } catch(e) {
-    document.getElementById("typing").style.display = "none";
-    addMsg("bot", "Erro: " + e.message);
-    ocupado = false; setStatus(false);
-  }
-}
-
-document.getElementById("msg-input").addEventListener("keydown", function(e) {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); enviar(); }
-});
-
-document.getElementById("msg-input").addEventListener("input", function() {
-  this.style.height = "auto";
-  this.style.height = Math.min(this.scrollHeight, 120) + "px";
-  atualizarBotoesBarra();
-});
-
-function atualizarBotoesBarra() {
-  const temTexto = document.getElementById("msg-input").value.trim().length > 0;
-  document.getElementById("send-btn").style.display = temTexto ? "flex" : "none";
-  document.getElementById("mic-btn").style.display  = temTexto ? "none"  : "flex";
-}
-
-// ── CONFIGURAÇÕES: engrenagem ──
-
-function renderKeyGrid() {
-  const grid = document.getElementById("key-grid");
-  if (!grid) return;
-  grid.innerHTML = "";
-  for (let i = 0; i < GEMINI_KEYS.length; i++) {
-    const btn = document.createElement("div");
-    btn.className = "key-num" + (i === geminiKeyIndex ? " active" : "");
-    btn.textContent = i + 1;
-    btn.onclick = () => {
-      geminiKeyIndex = i;
-      try { localStorage.setItem("dino_gemini_key_idx", i); } catch(e) {}
-      renderKeyGrid();
-      const lbl = document.getElementById("cfg-key-label");
-      if (lbl) lbl.textContent = "✔ Chave " + (i+1) + " selecionada";
-    };
-    grid.appendChild(btn);
-  }
-  const lbl = document.getElementById("cfg-key-label");
-  if (lbl) lbl.textContent = "Chave " + (geminiKeyIndex+1) + " em uso";
-}
-function renderModelList() {
-  const list = document.getElementById("model-list");
-  if (!list) return;
-  list.innerHTML = "";
-  for (let i = 0; i < GEMINI_MODELS.length; i++) {
-    const item = document.createElement("div");
-    item.className = "model-item" + (i === geminiModelIndex ? " active" : "");
-    item.textContent = GEMINI_MODELS[i].nome;
-    item.onclick = () => {
-      geminiModelIndex = i;
-      try { localStorage.setItem("dino_gemini_model_idx", i); } catch(e) {}
-      renderModelList();
-      const lbl = document.getElementById("cfg-model-label");
-      if (lbl) lbl.innerHTML = "Modelo: <strong style='color:#25D366'>" + GEMINI_MODELS[i].nome + "</strong>";
-    };
-    list.appendChild(item);
-  }
-}
-function abrirModalPalavras() {
-  fecharCfg();
-  const el = document.getElementById("pw-overlay");
-  el.style.display = "flex";
-}
-function fecharModalPalavras() {
-  document.getElementById("pw-overlay").style.display = "none";
-}
-function fecharPalavrasFora(e) {
-  if (e.target === document.getElementById("pw-overlay")) fecharModalPalavras();
-}
-function voltarCategorias() {
-  document.getElementById("pw-detail-overlay").style.display = "none";
-  document.getElementById("pw-overlay").style.display = "flex";
-}
-
-const PW_DADOS = {
-  pedidos: {
-    titulo: "📋 Pedidos",
-    blocos: [
-      { titulo: "Ver pedido",
-        linhas: [
-          { txt: `"me manda o pedido de João", "mostra o pedido da Ana"`, tags: ["hoje","ontem","essa semana","últimos 7 dias","últimos 3 pedidos"] },
-        ]
-      },
-      { titulo: "Editar pedido",
-        linhas: [
-          { txt: `"editar pedido de João", "mudar pedido da Ana", "alterar pedido do Carlos"` }
-        ]
-      },
-      { titulo: "Todos os pedidos",
-        linhas: [
-          { txt: `"listar pedidos da Ana", "todos os pedidos do João", "histórico de pedidos"`, tags: ["últimos 5 pedidos","últimos 10 pedidos"] }
-        ]
-      },
-      { titulo: "Quem pediu hoje",
-        linhas: [
-          { txt: `"quem fez pedido hoje", "pedidos de hoje"` }
-        ]
-      }
-    ]
-  },
-  pagamentos: {
-    titulo: "💰 Pagamentos",
-    blocos: [
-      { titulo: "Registrar pagamento",
-        linhas: [{ txt: `"João pagou 20", "lança 15 pra Ana", "quita Maria", "pago 30 de Carlos"` }]
-      },
-      { titulo: "Ver saldo / dívida",
-        linhas: [{ txt: `"saldo de Ana", "dívida do João", "quanto deve Maria"` }]
-      },
-      { titulo: "Lista devedores",
-        linhas: [{ txt: `"quem deve", "lista devedores", "todos com dívida"` }]
-      },
-      { titulo: "Lista credores",
-        linhas: [{ txt: `"quem tem crédito", "lista credores"` }]
-      }
-    ]
-  },
-  comprovantes: {
-    titulo: "🧾 Comprovantes",
-    blocos: [
-      { titulo: "Ver comprovantes",
-        linhas: [
-          { txt: `"comprovante de Ana", "comprovantes do João"`, tags: ["hoje","ontem","essa semana","últimos 30 dias","01/05 a 31/05"] }
-        ]
-      }
-    ]
-  },
-  filtros: {
-    titulo: "📅 Filtros de Data",
-    blocos: [
-      { titulo: "Use junto ao nome do cliente",
-        linhas: [
-          { txt: `"pedido de Ana"`, tags: ["hoje","ontem","essa semana","últimos 7 dias","últimas 2 semanas","último mês","01/05/2025","01/05/2025 a 31/05/2025","últimos 3 pedidos"] }
-        ]
-      }
-    ]
-  }
-};
-
-function abrirCategoria(cat) {
-  const dados = PW_DADOS[cat];
-  if (!dados) return;
-  document.getElementById("pw-detail-titulo").textContent = dados.titulo;
-  const html = dados.blocos.map(b => {
-    const linhasHtml = b.linhas.map(l => {
-      const tags = l.tags
-        ? `<span class="pw-inline-tags">${l.tags.map(f=>`<span class="pw-tag">[${f}]</span>`).join("")}</span>`
-        : "";
-      return `<div class="pw-linha-bloco">${l.txt}${tags}</div>`;
-    }).join("");
-    return `<div class="pw-bloco"><div class="pw-bloco-titulo">${b.titulo}</div>${linhasHtml}</div>`;
-  }).join("");
-  document.getElementById("pw-detail-conteudo").innerHTML = html;
-  document.getElementById("pw-overlay").style.display = "none";
-  document.getElementById("pw-detail-overlay").style.display = "flex";
-}
-
-function abrirCfg() {
-  document.getElementById("cfg-overlay").classList.add("open");
-  renderKeyGrid();
-}
-function fecharCfg() {
-  document.getElementById("cfg-overlay").classList.remove("open");
-  document.getElementById("limpar-confirm").style.display = "none";
-}
-function confirmarLimparConversa() {
-  document.getElementById("limpar-confirm").style.display = "block";
-}
-function cancelarLimpar() {
-  document.getElementById("limpar-confirm").style.display = "none";
-}
-function limparConversa() {
-  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
-  historico = [];
-  msgsSalvas = [];
-  // Limpa mensagens do DOM (mantém só a date pill e o typing)
-  const container = document.getElementById("messages");
-  [...container.children].forEach(el => {
-    if (!el.classList.contains("date-pill") && el.id !== "typing") el.remove();
-  });
-  fecharCfg();
-}
-function fecharCfgFora(e) {
-  if (e.target === document.getElementById("cfg-overlay")) fecharCfg();
-}
-
-document.getElementById("datePill").textContent = new Date().toLocaleDateString("pt-BR",{weekday:"long",day:"2-digit",month:"long"}).toUpperCase();
-
-function confirmarPixUrl() {
-  document.querySelectorAll(".confirm-btns").forEach(el => el.remove());
-  enviar();
-}
-function cancelarPixUrl() {
-  document.querySelectorAll(".confirm-btns").forEach(el => {
-    const span = document.createElement("span");
-    span.textContent = "Cancelado";
-    span.style.cssText = "display:block;color:#f87171;font-size:11px;margin-top:6px;";
-    el.replaceWith(span);
-  });
-  document.getElementById("msg-input").value = "";
-}
-
-// ── RECEBER PIX DA URL (?valor=data=hora=nome=sobrenome) ──
-function lerPixDaURL() {
-  const search = decodeURIComponent(window.location.search);
-  if (!search) return null;
-  const raw = search.substring(1);
-  const partes = raw.split('=');
-  if (partes.length !== 5) return null;
-  const valorRaw  = partes[0];
-  const data      = partes[1];
-  const hora      = partes[2];
-  const nome      = partes[3];
-  const sobrenome = partes[4];
-  if (valorRaw.includes('R$')) return null;
-  if (!nome.trim() || !sobrenome.trim()) return null;
-  const valorNum = parseFloat(valorRaw.replace(/\./g,'').replace(',','.'));
-  if (isNaN(valorNum) || valorNum <= 0) return null;
-  const destino = 'Jefferson Leandro (via picpay)';
-  return {
-    valor:    valorNum,
-    valorFmt: 'R$ ' + valorNum.toFixed(2).replace('.',','),
-    data,
-    hora,
-    remetente: nome + ' ' + sobrenome,
-    destino
-  };
-}
-
-function mostrarGuiaChaves() {
-  const el = document.getElementById('key-guide');
-  if (el.style.display === 'block') { el.style.display = 'none'; return; }
-  el.innerHTML = `<strong style="color:#25D366">📋 Passo a passo:</strong><br><br>
-1️⃣ Acesse <a href="https://aistudio.google.com/app/apikey" target="_blank" style="color:#53BDEB;">aistudio.google.com</a> e crie uma chave gratuita.<br><br>
-2️⃣ Acesse:<br>
-<span style="color:#53BDEB;">github.com/Jefferson8564/dino-i.a/settings/secrets/actions</span><br><br>
-3️⃣ Clique no ✏️ lápis do <strong>GEMINI_KEYS</strong><br><br>
-4️⃣ No campo Value coloque:<br>
-<span style="color:#25D366;font-family:monospace;">["chave1","chave2","chave3"]</span><br><br>
-5️⃣ Clique em <strong>Update secret</strong><br><br>
-6️⃣ Edite qualquer arquivo no repositório e salve para disparar o deploy.<br><br>
-<span style="color:#8696A0;">💡 Use chaves de contas Google diferentes para maior limite.</span>`;
-  el.style.display = 'block';
-}
-
-async function diagnosticar() {
-  const el = document.getElementById('diag-result');
-  el.style.color = '#8696A0';
-  el.textContent = 'Testando...';
-  try {
-    const chave = GEMINI_KEYS[geminiKeyIndex];
-    if (!chave || chave.includes('GEMINI_KEYS')) {
-      el.style.color = '#f87171';
-      el.textContent = '❌ Chave não configurada!';
-      return;
-    }
-    const url = 'https://generativelanguage.googleapis.com/v1beta/models/' + GEMINI_MODEL() + ':generateContent?key=' + chave;
-    const res = await fetch(url, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({contents:[{parts:[{text:'oi'}]}]}) });
-    if (res.ok) {
-      el.style.color = '#25D366';
-      el.textContent = '✅ Conexão OK! Chave funcionando.';
-    } else {
-      const err = await res.json();
-      el.style.color = '#f87171';
-      el.textContent = '❌ Erro ' + res.status + ': ' + (err?.error?.message || 'falha na API');
-    }
-  } catch(e) {
-    el.style.color = '#f87171';
-    el.textContent = '❌ Erro de rede: ' + e.message;
-  }
-}
-
-setTimeout(() => {
-  const restaurado = carregarLocal();
-
-  // Verifica se chegou um PIX via URL
-  const pix = lerPixDaURL();
-  if (pix) {
-    pixDadosUrl = { data: pix.data, hora: pix.hora, nomeUrl: pix.remetente, destino: pix.destino }; // guarda para usar em qualquer pagamento desta sessão
-    const msg =
-      "💸 *PIX RECEBIDO*\n" +
-      "──────────────────\n" +
-      "👤 Remetente: " + pix.remetente + "\n" +
-      "💰 Valor: " + pix.valorFmt + "\n" +
-      "📅 Data: " + pix.data + "\n" +
-      "🕐 Hora: " + pix.hora + "\n" +
-      "──────────────────\n" +
-      "Quem é o cliente?";
-    addMsg("bot", msg);
-    historico.push({ role:"assistant", content: msg });
-    pendenteSug = { acao:"pagamento_pix", sugestoes:[], valor:pix.valor, data:pix.data, hora:pix.hora, nomeUrl:pix.remetente };
-  } else if (!restaurado) {
-    addMsg("bot", "Ola! Sou o 𝕕𝕚𝕟𝕠 𝕚.𝕒.\n\nExemplos:\n- Jefferson pagou 50\n- Maria pagou\n- Lanca 25 do Joao\n- Comprovantes do Jefferson\n- Comprovantes da Maria de 01/04/2026 ate 17/04/2026");
-  }
-  setTimeout(() => document.getElementById("msg-input").focus(), 100);
-}, 400);
-
-// ── PEDIDOS ──────────────────────────────────────────────────────
-let pedidoAtual = null;   // { cliente, pedido (db row), itens[], cardapio[], editavel }
-let pedidosInline = null; // { cliente, rows[], cardapioArr } — card exibido no chat
-
-async function listarTodosPedidos(cliente) {
-  try {
-    const cardapio = await (await fetch(SUPABASE_URL + "/rest/v1/cardapio?select=*&available=eq.true", { headers: SB_H })).json();
-    const cardapioArr = Array.isArray(cardapio) ? cardapio : [];
-
-    const url = SUPABASE_URL + "/rest/v1/pedidos?select=*&customer_phone=eq." +
-      encodeURIComponent(cliente.phone) + "&order=created_at.desc";
-    const rows = await (await fetch(url, { headers: SB_H })).json();
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      const msg = "Nenhum pedido encontrado para " + cliente.name + ".";
-      addMsg("bot", msg);
-      historico.push({ role:"assistant", content:msg });
-      return;
-    }
-
-    let texto = "📋 Pedidos de " + cliente.name + " (" + rows.length + "):\n\n";
-    rows.forEach((pedido, idx) => {
-      const data = new Date(pedido.created_at);
-      const dh = data.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", year:"numeric", hour:"2-digit", minute:"2-digit" });
-      const total = Number(pedido.total || 0).toFixed(2).replace(".", ",");
-      const itens = parsePedidoTexto(pedido.items, cardapioArr);
-      const resumo = itens.length > 0
-        ? itens.map(i => i.quantity + "x " + i.name).join(", ")
-        : (pedido.items || "sem itens").split("\n").filter(l => l.trim() && !l.startsWith("———") && !l.startsWith("🏷️") && !l.startsWith("💳")).map(l => l.trim()).join(", ") || "sem itens";
-      const pagamento = pedido.payment_method || "";
-      texto += (idx+1) + ". " + dh + "\n";
-      texto += "   " + resumo + "\n";
-      texto += "   💰 R$ " + total + (pagamento ? "  •  " + pagamento : "") + "\n\n";
+      html += ''
+        + '<div class="msg-row ' + role + '">'
+        +   '<div class="bubble ' + role + '">'
+        +     imgHtml
+        +     '<div class="bubble-text">' + escapeHtml(m.conteudo) + '<span class="bubble-time">' + horaCurta(m.created_at) + '</span></div>'
+        +   '</div>'
+        + '</div>';
     });
-
-    addMsg("bot", texto.trim());
-    historico.push({ role:"assistant", content: texto.trim() });
-  } catch(e) {
-    addMsg("bot", "Erro ao listar pedidos: " + e.message);
-  }
-}
-
-// Extrai linhas de cupom/crédito do texto do pedido e seus valores de desconto
-function extrairLinhasExtras(texto) {
-  const extras = [];
-  for (const linha of (texto || "").split("\n")) {
-    if (linha.startsWith("🏷️") || linha.startsWith("💳")) {
-      const m = linha.match(/-\s*R?\$?\s*(\d+(?:[.,]\d{1,2})?)/);
-      const desconto = m ? parseFloat(m[1].replace(",", ".")) : 0;
-      extras.push({ linha: linha.trim(), desconto });
-    }
-  }
-  return extras;
-}
-
-// Converte o texto do cliente.html para array [{name, price, quantity, categoria}]
-function parsePedidoTexto(texto, cardapio) {
-  const itens = [];
-  const linhas = (texto || "").split("\n");
-  for (const linha of linhas) {
-    // Pular separadores e metadados (cupom, crédito)
-    if (!linha.trim() || linha.startsWith("———") || linha.startsWith("🏷️") || linha.startsWith("💳")) continue;
-    // Formato: [emoji] Nx Nome  (ex: "🍗 2x Coxinha" ou "2x Coxinha")
-    const match = linha.match(/^(?:🍗|🥐|✅)?\s*(\d+)x\s+(.+)$/);
-    if (!match) continue;
-    const quantity = parseInt(match[1]);
-    const name = match[2].trim();
-    // Busca preço no cardápio pelo nome
-    const prod = cardapio.find(p => (p.name || "").trim() === name);
-    const price = prod ? Number(prod.price || 0) : 0;
-    const categoria = prod ? (prod.categoria || "") : "";
-    const tipo = prod ? (prod.tipo || "") : "";
-    itens.push({ name, price, quantity, categoria, tipo });
-  }
-  return itens;
-}
-
-// Converte array de itens de volta pro formato texto do cliente.html
-function itensToPedidoTexto(itens) {
-  let fritos = "";
-  let crus = "";
-  for (const item of itens) {
-    const qty = Number(item.quantity || item.qty || item.quantidade || 0);
-    if (qty <= 0) continue;
-    const nome = item.name || item.nome || "Item";
-    const tipoEmoji = item.tipo === "quente" ? "🍗" : item.tipo === "fria" ? "🥐" : "✅";
-    const linha = `${tipoEmoji} ${qty}x ${nome}\n`;
-    if (item.categoria === "crus") crus += linha;
-    else fritos += linha;
-  }
-  let texto = "";
-  if (fritos) texto += "———————🔥fritos🔥———————\n" + fritos;
-  if (crus)   texto += "———————❄️ crus ❄️———————\n" + crus;
-  return texto;
-}
-
-async function abrirPedidoCliente(cliente, editavel) {
-  try {
-    // Busca últimos pedidos do cliente
-    const url = SUPABASE_URL + "/rest/v1/pedidos?select=*&customer_phone=eq." +
-      encodeURIComponent(cliente.phone) + "&order=created_at.desc&limit=10";
-    const rows = await (await fetch(url, { headers: SB_H })).json();
-
-    if (!Array.isArray(rows) || rows.length === 0) {
-      addMsg("bot", "Nenhum pedido encontrado para " + cliente.name + ".");
-      historico.push({ role:"assistant", content:"Nenhum pedido encontrado para " + cliente.name + "." });
-      return;
-    }
-
-    // Busca cardápio (necessário para preços ao fazer parse do texto)
-    const cardapio = await (await fetch(SUPABASE_URL + "/rest/v1/cardapio?select=*&available=eq.true", { headers: SB_H })).json();
-    const cardapioArr = Array.isArray(cardapio) ? cardapio : [];
-
-    // Pega o pedido mais recente que tenha itens
-    let pedido = rows[0];
-    let itens = [];
-    for (const row of rows) {
-      const parsed = parsePedidoTexto(row.items, cardapioArr);
-      if (parsed.length > 0) { pedido = row; itens = parsed; break; }
-    }
-
-    pedidoAtual = { cliente, pedido, itens: JSON.parse(JSON.stringify(itens)), cardapio: cardapioArr, editavel };
-    renderModalPedido();
-    document.getElementById("pedido-overlay").classList.add("open");
-
-  } catch(e) {
-    addMsg("bot", "Erro ao buscar pedido: " + e.message);
-  }
-}
-
-function renderModalPedido() {
-  if (!pedidoAtual) return;
-  const { cliente, pedido, itens, cardapio, editavel } = pedidoAtual;
-
-  document.getElementById("pedido-nome-cliente").textContent = cliente.name;
-  document.getElementById("pedido-subtitulo").textContent = editavel
-    ? "Ajuste as quantidades e salve"
-    : "Pedido mais recente (somente leitura)";
-  document.getElementById("btn-pedido-salvar").style.display = editavel ? "" : "none";
-  document.getElementById("btn-pedido-editar").style.display = editavel ? "none" : "";
-  document.getElementById("btn-pedido-wpp").style.display = "none";
-
-  const container = document.getElementById("pedido-items");
-  container.innerHTML = "";
-
-  // Em modo edição: mescla cardápio completo nos itens (qty=0 para os que não estão)
-  if (editavel && cardapio && cardapio.length > 0) {
-    for (const prod of cardapio) {
-      const jaExiste = itens.find(i => (i.name || i.nome || "").trim() === (prod.name || "").trim());
-      if (!jaExiste) {
-        itens.push({ name: prod.name, price: Number(prod.price || 0), quantity: 0, categoria: prod.categoria || "", tipo: prod.tipo || "" });
-      }
-    }
-  }
-
-  if (!itens || itens.length === 0) {
-    container.innerHTML = '<p style="color:#8696A0;text-align:center;padding:20px;">Pedido sem itens.</p>';
-    atualizarTotalPedido();
-    return;
-  }
-
-  if (!editavel) {
-    // Modo leitura: mostra só os itens do pedido
-    itens.forEach((item, idx) => {
-      const nome  = item.name || item.nome || "Item";
-      const preco = Number(item.price || item.preco || 0);
-      const qty   = Number(item.quantity || item.qty || item.quantidade || 1);
-      const div = document.createElement("div");
-      div.className = "pedido-item";
-      div.innerHTML =
-        '<div><div class="pedido-item-nome">' + nome + '</div>' +
-        '<div class="pedido-item-preco">R$ ' + preco.toFixed(2).replace(".",",") + ' cada</div></div>' +
-        '<div class="pedido-qty"><span id="qty-' + idx + '">' + qty + '</span></div>';
-      container.appendChild(div);
+    messagesEl.innerHTML = html;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    Array.prototype.forEach.call(messagesEl.querySelectorAll(".bubble-img"), function (img) {
+      img.onclick = function () {
+        document.getElementById("lightbox-img").src = img.src;
+        document.getElementById("lightbox").classList.add("open");
+      };
     });
-    atualizarTotalPedido();
-    return;
   }
-
-  // ── MODO EDIÇÃO ──
-  const noOrder     = itens.filter(i => Number(i.quantity || i.qty || i.quantidade || 0) > 0);
-  const disponiveis = itens.filter(i => Number(i.quantity || i.qty || i.quantidade || 0) === 0);
-
-  // Seção ADICIONAR (chips compactos no topo)
-  if (disponiveis.length > 0) {
-    const secAdd = document.createElement("div");
-    secAdd.className = "pedido-add-section";
-    secAdd.innerHTML = '<div class="pedido-sec-label">➕ Adicionar</div>';
-    const grid = document.createElement("div");
-    grid.className = "pedido-add-grid";
-    disponiveis.forEach(item => {
-      const idx = itens.indexOf(item);
-      const nome = item.name || item.nome || "Item";
-      const preco = Number(item.price || item.preco || 0);
-      const chip = document.createElement("div");
-      chip.className = "pedido-add-chip";
-      chip.innerHTML =
-        '<div class="pedido-add-nome">' + nome + '</div>' +
-        '<div class="pedido-add-preco">R$ ' + preco.toFixed(2).replace(".",",") + '</div>' +
-        '<button class="pedido-add-btn" onclick="adicionarItem(' + idx + ')">＋</button>';
-      grid.appendChild(chip);
-    });
-    secAdd.appendChild(grid);
-    container.appendChild(secAdd);
-  }
-
-  // Separador
-  if (noOrder.length > 0) {
-    const sep = document.createElement("div");
-    sep.className = "pedido-sec-label";
-    sep.style.marginTop = disponiveis.length > 0 ? "14px" : "0";
-    sep.textContent = "🛒 No pedido";
-    container.appendChild(sep);
-
-    noOrder.forEach(item => {
-      const idx = itens.indexOf(item);
-      const nome  = item.name || item.nome || "Item";
-      const preco = Number(item.price || item.preco || 0);
-      const qty   = Number(item.quantity || item.qty || item.quantidade || 0);
-      const div = document.createElement("div");
-      div.className = "pedido-item";
-      div.innerHTML =
-        '<div><div class="pedido-item-nome">' + nome + '</div>' +
-        '<div class="pedido-item-preco">R$ ' + preco.toFixed(2).replace(".",",") + ' cada</div></div>' +
-        '<div class="pedido-qty">' +
-          '<button onclick="alterarQty(' + idx + ',-1)">−</button>' +
-          '<span id="qty-' + idx + '">' + qty + '</span>' +
-          '<button onclick="alterarQty(' + idx + ',1)">+</button>' +
-        '</div>';
-      container.appendChild(div);
-    });
-  } else {
-    const vazio = document.createElement("p");
-    vazio.style.cssText = "color:#8696A0;text-align:center;padding:14px 0 4px;font-size:13px;";
-    vazio.textContent = "Nenhum item no pedido ainda.";
-    container.appendChild(vazio);
-  }
-
-  atualizarTotalPedido();
-}
-
-function adicionarItem(idx) {
-  if (!pedidoAtual) return;
-  const item = pedidoAtual.itens[idx];
-  const chaveQty = item.quantity !== undefined ? "quantity" : item.qty !== undefined ? "qty" : "quantidade";
-  item[chaveQty] = 1;
-  renderModalPedido(); // re-renderiza para mover o chip para "No pedido"
-}
-
-function alterarQty(idx, delta) {
-  if (!pedidoAtual) return;
-  const item = pedidoAtual.itens[idx];
-  const chaveQty = item.quantity !== undefined ? "quantity" : item.qty !== undefined ? "qty" : "quantidade";
-  const atual = Number(item[chaveQty] || item.quantity || item.qty || item.quantidade || 1);
-  const novo = Math.max(0, atual + delta);
-  item[chaveQty] = novo;
-  // Se chegou a 0, re-renderiza para mover o item de volta pra seção "Adicionar"
-  if (novo === 0) {
-    renderModalPedido();
-    return;
-  }
-  const el = document.getElementById("qty-" + idx);
-  if (el) el.textContent = novo;
-  atualizarTotalPedido();
-}
-
-function atualizarTotalPedido() {
-  if (!pedidoAtual) return;
-  const totalBruto = pedidoAtual.itens.reduce((acc, item) => {
-    const qty   = Number(item.quantity || item.qty || item.quantidade || 0);
-    const preco = Number(item.price || item.preco || 0);
-    return acc + qty * preco;
-  }, 0);
-  const extras = extrairLinhasExtras(pedidoAtual.pedido.items);
-  const totalDescontos = extras.reduce((acc, e) => acc + e.desconto, 0);
-  const total = Math.max(0, totalBruto - totalDescontos);
-  document.getElementById("pedido-total-valor").textContent = "R$ " + total.toFixed(2).replace(".",",");
-  // Mostra linha de desconto se houver cupom/crédito
-  const descontoEl = document.getElementById("pedido-desconto-line");
-  if (descontoEl) {
-    if (totalDescontos > 0) {
-      const labels = extras.map(e => e.linha.split(":")[0]).join(", ");
-      descontoEl.textContent = labels + ": −R$ " + totalDescontos.toFixed(2).replace(".",",");
-      descontoEl.style.display = "block";
-    } else {
-      descontoEl.style.display = "none";
-    }
-  }
-  pedidoAtual._novoTotal = total;
-  pedidoAtual._totalDescontos = totalDescontos;
-  pedidoAtual._extras = extras;
-}
-
-async function salvarPedido() {
-  if (!pedidoAtual || !pedidoAtual.editavel) return;
-  const { cliente, pedido, itens } = pedidoAtual;
-
-  // Remove itens com qty 0
-  const itensFiltrados = itens.filter(item => Number(item.quantity || item.qty || item.quantidade || 0) > 0);
-  const novoTotal = itensFiltrados.reduce((acc, item) => {
-    return acc + Number(item.quantity || item.qty || item.quantidade || 0) * Number(item.price || item.preco || 0);
-  }, 0);
-
-  document.getElementById("btn-pedido-salvar").textContent = "Salvando...";
-  document.getElementById("btn-pedido-salvar").disabled = true;
-
-  try {
-    const extras = extrairLinhasExtras(pedido.items);
-    const totalDescontos = extras.reduce((acc, e) => acc + e.desconto, 0);
-    const novoTotalComDesconto = Math.max(0, novoTotal - totalDescontos);
-
-    // ── Calcula diferença e ajusta debt do cliente ──
-    const totalAntigo = Number(pedido.total || 0);
-    const diferenca = totalAntigo - novoTotalComDesconto; // positivo = devolver crédito, negativo = cobrar mais
-
-    // Preserva linhas de cupom/crédito no texto salvo
-    const extrasTexto = extras.length > 0 ? extras.map(e => e.linha).join("\n") + "\n" : "";
-    const novoTexto = itensToPedidoTexto(itensFiltrados) + extrasTexto;
-
-    await sbUpdate("pedidos", { id: pedido.id }, {
-      items: novoTexto,
-      total: novoTotalComDesconto
-    });
-
-    let novoDebt = null;
-    if (Math.abs(diferenca) >= 0.01) {
-      // Busca debt atual direto do banco (evita valor stale do cache)
-      const cliAtual = await sbGet("clientes", { phone: cliente.phone });
-      const debtFresh = Number((Array.isArray(cliAtual) ? cliAtual[0] : cliAtual)?.debt || 0);
-      novoDebt = debtFresh - diferenca;
-      await sbUpdate("clientes", { phone: cliente.phone }, { debt: novoDebt });
-      clientesCache = null;
-      cliente.debt = novoDebt;
-    }
-
-    pedidoAtual.pedido.items = novoTexto;
-    pedidoAtual.pedido.total = novoTotalComDesconto;
-    pedidoAtual._novoTotal = novoTotalComDesconto;
-
-    document.getElementById("btn-pedido-salvar").textContent = "✅ Salvo!";
-    document.getElementById("btn-pedido-salvar").style.background = "#1da855";
-    document.getElementById("btn-pedido-wpp").style.display = "block";
-
-    const resumo = formatarResumoItens(itensFiltrados);
-    let linhaAjuste = "";
-    if (novoDebt !== null) {
-      if (diferenca >= 0.01) {
-        linhaAjuste = "\n💚 −R$ " + diferenca.toFixed(2).replace(".",",") + " na conta";
-      } else if (diferenca <= -0.01) {
-        linhaAjuste = "\n⚠️ +R$ " + Math.abs(diferenca).toFixed(2).replace(".",",") + " na conta";
-      }
-      const saldoFinal = novoDebt > 0
-        ? "\nDébito atual: R$ " + novoDebt.toFixed(2).replace(".",",")
-        : novoDebt < 0
-          ? "\nCrédito a favor: R$ " + Math.abs(novoDebt).toFixed(2).replace(".",",")
-          : "\nConta quitada ✅";
-      linhaAjuste += saldoFinal;
-    }
-
-    const msgBot = "✅ Pedido de " + cliente.name + " atualizado!\n\n" + resumo + "\nTotal: R$ " + novoTotalComDesconto.toFixed(2).replace(".",",") + linhaAjuste;
-    addMsg("bot", msgBot);
-    historico.push({ role:"assistant", content: msgBot });
-
-    setTimeout(() => {
-      if (document.getElementById("btn-pedido-salvar")) {
-        document.getElementById("btn-pedido-salvar").textContent = "✅ Salvar";
-        document.getElementById("btn-pedido-salvar").style.background = "#25D366";
-        document.getElementById("btn-pedido-salvar").disabled = false;
-      }
-    }, 2000);
-
-  } catch(e) {
-    document.getElementById("btn-pedido-salvar").textContent = "✅ Salvar";
-    document.getElementById("btn-pedido-salvar").disabled = false;
-    addMsg("bot", "Erro ao salvar pedido: " + e.message);
-  }
-}
-
-function formatarResumoItens(itens) {
-  return itens.map(item => {
-    const qty  = Number(item.quantity || item.qty || item.quantidade || 0);
-    const nome = item.name || item.nome || "Item";
-    return qty + "x " + nome;
-  }).join("\n") + "\n";
-}
-
-function enviarComprovanteAlteracaoWpp() {
-  if (!pedidoAtual) return;
-  const { cliente, pedido } = pedidoAtual;
-  let itens = parsePedidoTexto(pedido.items, pedidoAtual.cardapio || []);
-  const novoTotal = pedidoAtual._novoTotal || Number(pedido.total || 0);
-
-  const linhasItens = itens
-    .filter(i => Number(i.quantity || i.qty || i.quantidade || 0) > 0)
-    .map(i => "✅ " + Number(i.quantity || i.qty || i.quantidade || 0) + " : " + (i.name || i.nome || "Item") + "*")
-    .join("\n");
-
-  const msg =
-    "👽 *𝕕𝕚𝕟𝕠 𝕚.𝕒* ᵃᵈᵐⁱⁿⁱˢᵗʳᵃᵈᵒʳ\n" +
-    "*seu pedido foi alterado*\n" +
-    "➖➖➖➖➖➖➖➖➖➖\n" +
-    linhasItens + "\n" +
-    "total : R$ " + novoTotal.toFixed(2).replace(".",",") + "\n" +
-    "➖➖➖➖➖➖➖➖➖➖\n" +
-    "✅ pedido atualizado";
-
-  const tel = String(cliente.phone).replace(/\D/g, "");
-  const link = "https://wa.me/" + (tel.startsWith("55") ? tel : "55" + tel) + "?text=" + encodeURIComponent(msg);
-  window.open(link, "_blank");
-}
-
-function ativarEdicaoPedido() {
-  if (!pedidoAtual) return;
-  pedidoAtual.editavel = true;
-  renderModalPedido();
-}
-
-// ── PEDIDO INLINE NO CHAT ──────────────────────────────────────
-
-function formatarDataHoraPedido(created_at) {
-  if (!created_at) return "";
-  try {
-    const d = new Date(created_at);
-    return d.toLocaleString("pt-BR", { timeZone:"America/Sao_Paulo", day:"2-digit", month:"2-digit", year:"2-digit", hour:"2-digit", minute:"2-digit" });
-  } catch(e) { return ""; }
-}
-
-function compartilharPedidoWpp() {
-  if (!pedidosInline) return;
-  const { cliente, rows, cardapioArr } = pedidosInline;
-  const dh = dataHoraSP();
-  let linhas = "";
-  rows.forEach((pedido, idx) => {
-    const itens = parsePedidoTexto(pedido.items, cardapioArr);
-    const total = Number(pedido.total || 0);
-    const dhPed = formatarDataHoraPedido(pedido.created_at);
-    if (rows.length > 1) linhas += "\n*Pedido " + (idx+1) + "*" + (dhPed ? " — " + dhPed : "") + "\n";
-    itens.forEach(i => {
-      const qty = Number(i.quantity||i.qty||i.quantidade||1);
-      linhas += "✅ " + qty + "x : " + (i.name||i.nome||"Item") + "*\n";
-    });
-    linhas += "💰 Total: R$ " + total.toFixed(2).replace(".",",") + "\n";
-  });
-  const msg =
-    "👽 *𝕕𝕚𝕟𝕠 𝕚.𝕒* ᵃᵈᵐⁱⁿⁱˢᵗʳᵃᵈᵒʳ\n" +
-    "*pedido de " + cliente.name + "*\n" +
-    "➖➖➖➖➖➖➖➖➖➖\n" +
-    linhas +
-    "➖➖➖➖➖➖➖➖➖➖\n" +
-    "📅 " + dh;
-  const tel = String(cliente.phone).replace(/\D/g,"");
-  window.open("https://wa.me/" + (tel.startsWith("55") ? tel : "55"+tel) + "?text=" + encodeURIComponent(msg), "_blank");
-}
-
-function addPedidoCard(cliente, rows, cardapioArr, modoEditar) {
-  pedidosInline = { cliente, rows, cardapioArr };
-  const t = agora();
-  const temVarios = rows.length > 1;
-  const row = document.createElement("div");
-  row.className = "msg-row bot";
-
-  let conteudo = `<div class="chat-pedido-titulo">📋 Pedido de ${cliente.name}</div>
-    <div class="chat-pedido-sub">${temVarios ? rows.length + " pedidos encontrados" : "Pedido mais recente"}</div>`;
-
-  if (temVarios) {
-    rows.forEach((pedido, idx) => {
-      const itens = parsePedidoTexto(pedido.items, cardapioArr);
-      const total = Number(pedido.total || 0);
-      const dh = formatarDataHoraPedido(pedido.created_at);
-      conteudo += `<div class="chat-pedido-bloco">
-        <div class="chat-pedido-bloco-num">Pedido ${idx+1}${dh ? ' <span style="font-weight:400;color:#8696A0;font-size:11px;">— '+dh+'</span>' : ''}</div>
-        ${itens.map(i => `<div class="chat-pedido-item">${Number(i.quantity||i.qty||i.quantidade||1)}x : ${i.name||i.nome||"Item"}</div>`).join("")}
-        <div class="chat-pedido-total">Total: R$ ${total.toFixed(2).replace(".",",")}</div>
-      </div>`;
-    });
-  } else {
-    const itens = parsePedidoTexto(rows[0].items, cardapioArr);
-    const total = Number(rows[0].total || 0);
-    const dh = formatarDataHoraPedido(rows[0].created_at);
-    if (dh) conteudo += `<div style="color:#8696A0;font-size:11px;margin-bottom:6px;">📅 ${dh}</div>`;
-    conteudo += itens.map(i =>
-      `<div class="chat-pedido-item">${Number(i.quantity||i.qty||i.quantidade||1)}x : ${i.name||i.nome||"Item"}</div>`
-    ).join("") + `<div class="chat-pedido-total">Total: R$ ${total.toFixed(2).replace(".",",")}</div>`;
-  }
-
-  if (modoEditar) {
-    conteudo += `<div class="chat-pedido-btns">
-      <button class="chat-pedido-btn btn-cp-editar" onclick="editarPedidoInline()">✏️ Editar</button>
-      <button class="chat-pedido-btn btn-cp-excluir" onclick="excluirPedidoInline()">🗑️ Excluir</button>
-    </div>`;
-  } else {
-    conteudo += `<div class="chat-pedido-btns">
-      <button class="chat-pedido-btn btn-cp-editar" style="background:#0d2e1e;color:#25D366;" onclick="compartilharPedidoWpp()">📲 Compartilhar no WhatsApp</button>
-    </div>`;
-  }
-
-  row.innerHTML = `<div class="bubble bot">
-    <span class="bubble-meta-wrap"><span class="bubble-time">${t}</span></span>
-    <div class="chat-pedido">${conteudo}</div>
-  </div>`;
-  msgs().insertBefore(row, document.getElementById("typing"));
-  rolar();
-}
-
-async function mostrarPedidosChat(cliente, filtroData, modoEditar) {
-  try {
-    const cardapio = await (await fetch(SUPABASE_URL + "/rest/v1/cardapio?select=*&available=eq.true", { headers: SB_H })).json();
-    const cardapioArr = Array.isArray(cardapio) ? cardapio : [];
-    let url = SUPABASE_URL + "/rest/v1/pedidos?select=*&customer_phone=eq." +
-      encodeURIComponent(cliente.phone) + "&order=created_at.desc";
-
-    if (filtroData) {
-      if (filtroData.limite) {
-        url += "&limit=" + filtroData.limite;
-      } else {
-        if (filtroData.inicio) url += "&created_at=gte." + encodeURIComponent(filtroData.inicio);
-        if (filtroData.fim)    url += "&created_at=lte." + encodeURIComponent(filtroData.fim);
-      }
-    }
-
-    const rows = await (await fetch(url, { headers: SB_H })).json();
-    document.getElementById("typing").style.display = "none";
-    if (!Array.isArray(rows) || rows.length === 0) {
-      const periodoMsg = filtroData ? " no período informado" : "";
-      const msg = "Nenhum pedido encontrado para " + cliente.name + periodoMsg + ".";
-      addMsg("bot", msg); historico.push({ role:"assistant", content: msg });
-      return;
-    }
-    // filtra só pedidos com itens
-    const validos = rows.filter(r => parsePedidoTexto(r.items, cardapioArr).length > 0);
-    if (!validos.length) {
-      const msg = "Pedidos de " + cliente.name + " não têm itens registrados.";
-      addMsg("bot", msg); historico.push({ role:"assistant", content: msg });
-      return;
-    }
-    addPedidoCard(cliente, validos, cardapioArr, !!modoEditar);
-  } catch(e) {
-    document.getElementById("typing").style.display = "none";
-    addMsg("bot", "Erro ao buscar pedidos: " + e.message);
-  }
-}
-
-function editarPedidoInline() {
-  if (!pedidosInline) return;
-  const { rows, cardapioArr, cliente } = pedidosInline;
-  if (rows.length === 1) {
-    const itens = parsePedidoTexto(rows[0].items, cardapioArr);
-    pedidoAtual = { cliente, pedido: rows[0], itens: JSON.parse(JSON.stringify(itens)), cardapio: cardapioArr, editavel: true };
-    renderModalPedido();
-    document.getElementById("pedido-overlay").classList.add("open");
-  } else {
-    const lista = rows.map((r, i) => (i+1) + ". Pedido " + (i+1) + " — R$ " + Number(r.total||0).toFixed(2).replace(".",",")).join("\n");
-    const resp = "Qual pedido deseja editar?\n\n" + lista;
-    addMsg("bot", resp);
-    historico.push({ role:"assistant", content: resp });
-    pendenteSug = { acao: "escolher_editar", pedidos: rows, cliente, cardapioArr };
-  }
-}
-
-function excluirPedidoInline() {
-  if (!pedidosInline) return;
-  const { rows, cliente } = pedidosInline;
-  if (rows.length === 1) {
-    const total = Number(rows[0].total || 0);
-    const msg = "Excluir pedido de " + cliente.name + "?\n\nTotal: R$ " + total.toFixed(2).replace(".",",") + " será creditado na conta.\n\nEssa ação não pode ser desfeita.";
-    pendente = { tipo: "excluir_pedido", pedido: rows[0], cliente };
-    addMsg("bot", msg, true);
-    historico.push({ role:"assistant", content: msg });
-    ocupado = true;
-  } else {
-    const lista = rows.map((r, i) => (i+1) + ". Pedido " + (i+1) + " — R$ " + Number(r.total||0).toFixed(2).replace(".",",")).join("\n");
-    const resp = "Qual pedido deseja excluir?\n\n" + lista;
-    addMsg("bot", resp);
-    historico.push({ role:"assistant", content: resp });
-    pendenteSug = { acao: "escolher_excluir", pedidos: rows, cliente, cardapioArr: pedidosInline.cardapioArr };
-  }
-}
-
-function fecharPedido() {
-  document.getElementById("pedido-overlay").classList.remove("open");
-  pedidoAtual = null;
-}
-
-function fecharPedidoFora(e) {
-  if (e.target === document.getElementById("pedido-overlay")) fecharPedido();
-}
-
-// ── MICROFONE (Speech Recognition) ──────────────────────────────
-let reconhecimento = null;
-let micAtivo = false;
-
-function toggleMic() {
-  if (micAtivo) {
-    pararMic();
-  } else {
-    iniciarMic();
-  }
-}
-
-function iniciarMic() {
-  const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SR) {
-    addMsg("bot", "Seu navegador não suporta reconhecimento de voz. Tente pelo Chrome.");
-    return;
-  }
-  reconhecimento = new SR();
-  reconhecimento.lang = "pt-BR";
-  reconhecimento.continuous = false;
-  reconhecimento.interimResults = false;
-
-  const input = document.getElementById("msg-input");
-  const btn   = document.getElementById("mic-btn");
-
-  reconhecimento.onstart = () => {
-    micAtivo = true;
-    btn.classList.add("gravando");
-    btn.textContent = "⏹️";
-    input.value = "";
-    input.placeholder = "Ouvindo...";
+  document.getElementById("lightbox").onclick = function () {
+    this.classList.remove("open");
   };
 
-  reconhecimento.onresult = (e) => {
-    const texto = e.results[0][0].transcript;
-    input.value = texto;
-    input.style.height = "auto";
-    input.style.height = Math.min(input.scrollHeight, 120) + "px";
-  };
-
-  reconhecimento.onerror = (e) => {
-    if (e.error !== "aborted") pararMic();
-  };
-
-  reconhecimento.onend = () => {
-    input.placeholder = "Mensagem";
-    pararMic();
-    const val = document.getElementById("msg-input").value.trim();
-    if (val) enviar();
-  };
-
-  reconhecimento.start();
-}
-
-function pararMic() {
-  micAtivo = false;
-  const btn = document.getElementById("mic-btn");
-  btn.classList.remove("gravando");
-  btn.textContent = "🎤";
-  if (reconhecimento) {
-    try { reconhecimento.stop(); } catch(e) {}
-    reconhecimento = null;
-  }
-  atualizarBotoesBarra();
-}
-
+  // ---------- boot ----------
+  carregarConfig();
+  carregarClientes();
+})();
 </script>
 </body>
 </html>
