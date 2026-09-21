@@ -253,6 +253,9 @@
   var cfg = { url: "https://vpeyqgijajywgswmezlh.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ" };
   // URL do backend Deno (mesmo domínio do webhook). Ajuste se o endereço mudar.
   var BACKEND_URL = "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/whatsapp";
+  function adminHeaders() {
+    return { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key };
+  }
   var LIDAS_KEY = "reicoxinha_lidas"; // phone -> data da última mensagem já lida (só neste aparelho)
   var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
   var pausaMap = {};      // phone -> true/false (bot_pausado, da tabela clientes)
@@ -636,7 +639,7 @@
     btnPausa.disabled = true;
     fetch(BACKEND_URL + "/admin/pausa", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ phone: currentPhone, pausado: novoEstado })
     })
       .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
@@ -672,7 +675,7 @@
     manualSend.disabled = true;
     fetch(BACKEND_URL + "/admin/enviar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ phone: currentPhone, texto: texto })
     })
       .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
@@ -692,7 +695,7 @@
     if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Executando…"; }
     fetch(BACKEND_URL + "/admin/executar", {
       method: "POST",
-      headers: { "Content-Type": "application/json" },
+      headers: adminHeaders(),
       body: JSON.stringify({ phone: phone, texto: texto })
     })
       .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
