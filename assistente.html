@@ -79,6 +79,7 @@
   .bubble-text { color:#E9EDEF; font-size:14.5px; line-height:20px; word-break:break-word; white-space:pre-wrap; }
   .bubble-img { display:block; max-width:100%; width:220px; border-radius:6px; margin-bottom:4px; cursor:pointer; }
   .bubble-pdf { display:flex; align-items:center; gap:8px; background:#1A2E38; border:1px solid #2A3942; border-radius:8px; padding:9px 11px; margin-bottom:6px; text-decoration:none; color:#E9EDEF; font-size:13px; }
+  .bubble-audio { display:block; width:220px; max-width:100%; height:38px; margin-bottom:6px; }
   .bubble-pdf svg { width:18px; height:18px; color:#f87171; flex-shrink:0; }
   .bubble-time { color:rgba(134,150,160,.9); font-size:10.5px; line-height:15px; float:right; margin-left:8px; margin-top:2px; margin-bottom:-3px; }
 
@@ -409,23 +410,62 @@
     clientListEl.style.display = nome === "list" ? "block" : "none";
   }
 
+  // ---------- rótulo das mídias: (foto), (pdf), (áudio)... ----------
+  function rotuloMidia(mime, conteudo) {
+    var t = String(mime || "").toLowerCase();
+    if (t.indexOf("pdf") !== -1) return "(pdf)";
+    if (t.indexOf("image") === 0) return "(foto)";
+    if (t.indexOf("audio") === 0) return "(áudio)";
+    if (t.indexOf("video") === 0) return "(vídeo)";
+    if (t) return "(arquivo)";
+    // mensagens antigas (sem mídia salva) que guardaram só o texto lido do comprovante
+    if (/^Comprovante Pix/i.test(String(conteudo || ""))) return "(comprovante)";
+    return "";
+  }
+  // Texto mostrado no balão / na lista: mídia do cliente aparece só como (foto), (pdf)...
+  // No áudio, o rótulo vem acompanhado da transcrição.
+  function textoExibido(m) {
+    var r = m.role === "user" ? rotuloMidia(m.midia_mime, m.conteudo) : "";
+    if (!r) return m.conteudo || "";
+    if (r === "(áudio)" && m.conteudo && m.conteudo !== r) return r + "\n" + m.conteudo;
+    return r;
+  }
+
   // ---------- carregar clientes (agrupando conversas_bot por phone) ----------
   function carregarClientes() {
     mostrarEstado("loading");
-    var qs = "select=phone,role,conteudo,created_at&order=created_at.desc&limit=5000";
-    fetch(cfg.url + "/rest/v1/conversas_bot?" + qs, { headers: headers() })
-      .then(function (r) {
+    // O Supabase devolve no máximo 1000 linhas por pedido (mesmo com limit maior),
+    // então a lista é montada em páginas de 1000 até acabar as mensagens.
+    var urlLista = cfg.url + "/rest/v1/conversas_bot?";
+    var TAM_PAGINA = 1000;
+    var MAX_PAGINAS = 40; // segurança: até 40.000 mensagens
+    var colunas = "phone,role,conteudo,created_at,midia_mime";
+    var todas = [];
+    function buscarPagina(pagina) {
+      var qs = "select=" + colunas + "&order=created_at.desc&limit=" + TAM_PAGINA + "&offset=" + (pagina * TAM_PAGINA);
+      return fetch(urlLista + qs, { headers: headers() }).then(function (r) {
+        // sem a coluna midia_mime, repete a busca sem ela
+        if (!r.ok && pagina === 0 && colunas.indexOf("midia_mime") !== -1) {
+          colunas = "phone,role,conteudo,created_at";
+          return buscarPagina(0);
+        }
         if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
-        return r.json();
-      })
-      .then(function (rows) {
+        return r.json().then(function (rows) {
+          todas = todas.concat(rows);
+          if (rows.length === TAM_PAGINA && pagina + 1 < MAX_PAGINAS) return buscarPagina(pagina + 1);
+        });
+      });
+    }
+    buscarPagina(0)
+      .then(function () {
+        var rows = todas;
         groupsByPhone = {};
         rows.forEach(function (m) {
           if (!groupsByPhone[m.phone]) {
             groupsByPhone[m.phone] = {
               lastTime: m.created_at,
               lastRole: m.role,
-              lastMsg: m.conteudo,
+              lastMsg: textoExibido(m),
               count: 0
             };
           }
@@ -558,19 +598,22 @@
       var role = m.role === "user" ? "user" : "assistant";
       var imgHtml = "";
       if (m.midia_base64 && m.midia_mime) {
-        if (m.midia_mime.indexOf("pdf") !== -1) {
-          imgHtml = '<a class="bubble-pdf" href="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" target="_blank" rel="noopener">'
+        var mimeLimpo = String(m.midia_mime).split(";")[0].trim();
+        if (mimeLimpo.indexOf("audio") === 0) {
+          imgHtml = '<audio class="bubble-audio" controls preload="none" src="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '"></audio>';
+        } else if (mimeLimpo.indexOf("pdf") !== -1) {
+          imgHtml = '<a class="bubble-pdf" href="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '" target="_blank" rel="noopener">'
             + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
             + '<span>Ver PDF</span></a>';
         } else {
-          imgHtml = '<img class="bubble-img" src="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" alt="mídia enviada">';
+          imgHtml = '<img class="bubble-img" src="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '" alt="mídia enviada">';
         }
       }
       html += ''
         + '<div class="msg-row ' + role + '">'
         +   '<div class="bubble ' + role + '">'
         +     imgHtml
-        +     '<div class="bubble-text">' + escapeHtml(m.conteudo) + '<span class="bubble-time">' + horaCurta(m.created_at) + '</span></div>'
+        +     '<div class="bubble-text">' + escapeHtml(textoExibido(m)) + '<span class="bubble-time">' + horaCurta(m.created_at) + '</span></div>'
         +   '</div>'
         + '</div>';
     });
