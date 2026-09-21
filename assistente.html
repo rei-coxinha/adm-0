@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Conversas — Rei da Coxinha</title>
+<meta name="theme-color" content="#0B141A">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; }
+  body { background: #0B141A; font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Roboto, 'Segoe UI', Arial, sans-serif; display: flex; justify-content: center; align-items: center; }
+  #app { width: 100%; max-width: 480px; height: 100dvh; display: flex; flex-direction: column; position: relative; background: #0B141A; overflow: hidden; }
+
+  /* ── TELA: LISTA DE CLIENTES ── */
+  #screen-list { position:absolute; inset:0; display:flex; flex-direction:column; transition: transform .22s ease; z-index: 2; }
+  #screen-list.hidden { transform: translateX(-100%); pointer-events: none; }
+  #list-header { background:#111B21; padding:14px 16px 10px; flex-shrink:0; }
+  #list-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  #list-title { color:#E9EDEF; font-size:19px; font-weight:700; }
+  #list-header-actions { display:flex; gap:6px; }
+  .icon-btn { width:34px; height:34px; border-radius:50%; border:none; background:transparent; color:#AEBAC1; display:flex; align-items:center; justify-content:center; cursor:pointer; transition: background .15s, color .3s; }
+  .icon-btn:active { background:#202C33; }
+  .icon-btn svg { width:19px; height:19px; }
+  .icon-btn.spin svg { animation: spin .6s linear; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  #search-wrap { background:#202C33; border-radius:9px; display:flex; align-items:center; gap:8px; padding:8px 12px; }
+  #search-wrap svg { width:16px; height:16px; color:#8696A0; flex-shrink:0; }
+  #search-input { flex:1; background:transparent; border:none; outline:none; color:#E9EDEF; font-size:14.5px; font-family:inherit; }
+  #search-input::placeholder { color:#8696A0; }
+
+  #client-list { flex:1; overflow-y:auto; }
+  #client-list::-webkit-scrollbar { width:4px; }
+  #client-list::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .client-row { display:flex; align-items:center; gap:12px; padding:11px 16px; cursor:pointer; border-bottom:1px solid #172026; transition: background .1s; }
+  .client-row:active { background:#182229; }
+  .client-avatar { width:48px; height:48px; border-radius:50%; background:linear-gradient(135deg, #2f6b4f, #1a4531); display:flex; align-items:center; justify-content:center; font-size:19px; font-weight:700; color:#bfe8cf; flex-shrink:0; }
+  .client-mid { flex:1; min-width:0; }
+  .client-top-line { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .client-name { color:#E9EDEF; font-size:15.5px; font-weight:600; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .client-time { color:#8696A0; font-size:11.5px; flex-shrink:0; }
+  .client-preview { color:#8696A0; font-size:13.5px; margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; display:flex; align-items:center; gap:4px; }
+  .preview-role { flex-shrink:0; opacity:.8; }
+  .client-count { background:#1f3d2c; color:#25D366; font-size:10.5px; font-weight:700; border-radius:9px; padding:1px 7px; flex-shrink:0; }
+
+  #empty-state, #loading-state, #error-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px 30px; text-align:center; }
+  #empty-state { display:none; }
+  #error-state { display:none; }
+  .state-icon { font-size:38px; opacity:.6; }
+  .state-title { color:#E9EDEF; font-size:15px; font-weight:600; }
+  .state-sub { color:#8696A0; font-size:13px; line-height:1.5; }
+  .state-btn { margin-top:6px; background:#00A884; color:#04120D; font-weight:700; font-size:13.5px; border:none; border-radius:9px; padding:9px 18px; cursor:pointer; }
+  .spinner { width:26px; height:26px; border-radius:50%; border:3px solid #2A3942; border-top-color:#25D366; animation: spin .7s linear infinite; }
+
+  /* ── TELA: CHAT ── */
+  #screen-chat { position:absolute; inset:0; display:flex; flex-direction:column; transform: translateX(100%); transition: transform .22s ease; z-index:3; background:#0B141A; }
+  #screen-chat.visible { transform: translateX(0); }
+  #chat-header { background:#111B21; padding:9px 12px; display:flex; align-items:center; gap:6px; border-bottom:1px solid #2A3942; flex-shrink:0; z-index:10; }
+  #chat-back { background:none; border:none; color:#AEBAC1; cursor:pointer; padding:6px; display:flex; }
+  #chat-back svg { width:22px; height:22px; }
+  .chat-header-avatar { width:38px; height:38px; border-radius:50%; background:linear-gradient(135deg, #2f6b4f, #1a4531); display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:700; color:#bfe8cf; flex-shrink:0; }
+  .chat-header-info { flex:1; min-width:0; }
+  .chat-header-name { color:#E9EDEF; font-weight:600; font-size:15px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-header-sub { color:#8696A0; font-size:11.5px; }
+
+  #wallpaper { position:absolute; inset:57px 0 0; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+  #messages { flex:1; overflow-y:auto; padding:10px 0 14px; display:flex; flex-direction:column; position:relative; z-index:1; }
+  #messages::-webkit-scrollbar { width:4px; }
+  #messages::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .date-pill { display:flex; justify-content:center; margin:10px 0 8px; }
+  .date-pill span { background:#1E2D36; border-radius:8px; padding:4px 10px; color:#8696A0; font-size:11.5px; }
+  .msg-row { display:flex; align-items:flex-end; margin-bottom:2px; }
+  .msg-row.user { justify-content:flex-end; padding-left:52px; padding-right:8px; }
+  .msg-row.assistant { justify-content:flex-start; padding-right:52px; padding-left:8px; }
+  .bubble { padding:6px 7px 4px 9px; max-width:100%; position:relative; box-shadow:0 1px 0.5px rgba(0,0,0,.36); word-wrap:break-word; }
+  .bubble.assistant { background:#202C33; border-radius:0 7.5px 7.5px 7.5px; }
+  .bubble.assistant::before { content:""; position:absolute; top:0; left:-8px; border-style:solid; border-width:0 9px 9px 0; border-color:transparent #202C33 transparent transparent; }
+  .bubble.user { background:#005C4B; border-radius:7.5px 0 7.5px 7.5px; }
+  .bubble.user::after { content:""; position:absolute; top:0; right:-8px; border-style:solid; border-width:9px 9px 0 0; border-color:#005C4B transparent transparent transparent; }
+  .bubble-text { color:#E9EDEF; font-size:14.5px; line-height:20px; word-break:break-word; white-space:pre-wrap; }
+  .bubble-img { display:block; max-width:100%; width:220px; border-radius:6px; margin-bottom:4px; cursor:pointer; }
+  .bubble-pdf { display:flex; align-items:center; gap:8px; background:#1A2E38; border:1px solid #2A3942; border-radius:8px; padding:9px 11px; margin-bottom:6px; text-decoration:none; color:#E9EDEF; font-size:13px; }
+  .bubble-pdf svg { width:18px; height:18px; color:#f87171; flex-shrink:0; }
+  .bubble-time { color:rgba(134,150,160,.9); font-size:10.5px; line-height:15px; float:right; margin-left:8px; margin-top:2px; margin-bottom:-3px; }
+
+  /* ── MODAL CONFIGURAÇÃO ── */
+  #cfg-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:100; justify-content:center; align-items:flex-end; }
+  #cfg-overlay.open { display:flex; }
+  #cfg-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 30px; }
+  #cfg-box h2 { color:#E9EDEF; font-size:16px; font-weight:700; margin-bottom:6px; }
+  #cfg-box p { color:#8696A0; font-size:12px; margin-bottom:16px; line-height:1.5; }
+  .cfg-label { color:#8696A0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; display:block; }
+  .cfg-input { width:100%; background:#1E2D36; border:1.5px solid #2A3942; border-radius:10px; padding:11px 13px; color:#E9EDEF; font-size:13.5px; font-family:inherit; outline:none; margin-bottom:14px; }
+  .cfg-input:focus { border-color:#25D366; }
+  .cfg-btns { display:flex; gap:8px; margin-top:4px; }
+  .cfg-btns button { flex:1; padding:12px; border:none; border-radius:10px; font-weight:700; font-size:14px; cursor:pointer; }
+  #cfg-save { background:#25D366; color:#04120D; }
+  #cfg-cancel { background:#1E2D36; color:#E9EDEF; }
+  #cfg-error { color:#f87171; font-size:12px; margin:-8px 0 12px; display:none; }
+
+  /* ── MODAL EDITAR CONTATO ── */
+  #rename-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:110; justify-content:center; align-items:flex-end; }
+  #rename-overlay.open { display:flex; }
+  #rename-box { background:#111B21; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 30px; }
+  #rename-box h2 { color:#E9EDEF; font-size:16px; font-weight:700; margin-bottom:4px; }
+  #rename-phone-label { color:#8696A0; font-size:12.5px; margin-bottom:16px; }
+  #rename-error { color:#f87171; font-size:12px; margin:-8px 0 12px; display:none; }
+
+  /* ── LIGHTBOX DE IMAGEM ── */
+  #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:150; justify-content:center; align-items:center; padding:20px; }
+  #lightbox.open { display:flex; }
+  #lightbox img { max-width:100%; max-height:100%; border-radius:6px; }
+
+  /* ── LÁPIS DE EDITAR ── */
+  .edit-pencil { width:30px; height:30px; border-radius:50%; border:none; background:transparent; color:#8696A0; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition: background .15s, color .15s; }
+  .edit-pencil:active { background:#202C33; color:#E9EDEF; }
+  .edit-pencil svg { width:16px; height:16px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== LISTA DE CLIENTES ===================== -->
+  <div id="screen-list">
+    <div id="list-header">
+      <div id="list-header-top">
+        <div id="list-title">Conversas</div>
+        <div id="list-header-actions">
+          <button class="icon-btn" id="btn-refresh" title="Atualizar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+          </button>
+          <button class="icon-btn" id="btn-gear" title="Configurar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="search-input" placeholder="Buscar por nome ou telefone">
+      </div>
+    </div>
+
+    <div id="loading-state">
+      <div class="spinner"></div>
+      <div class="state-sub">Carregando conversas…</div>
+    </div>
+
+    <div id="error-state">
+      <div class="state-icon">⚠️</div>
+      <div class="state-title">Não consegui carregar</div>
+      <div class="state-sub" id="error-msg">Confira a URL e a chave do Supabase.</div>
+      <button class="state-btn" id="btn-error-cfg">Abrir configuração</button>
+    </div>
+
+    <div id="empty-state">
+      <div class="state-icon">💬</div>
+      <div class="state-title">Nenhuma conversa ainda</div>
+      <div class="state-sub">Assim que um cliente mandar mensagem pro bot, ela aparece aqui.</div>
+    </div>
+
+    <div id="client-list" style="display:none"></div>
+  </div>
+
+  <!-- ===================== CHAT ===================== -->
+  <div id="screen-chat">
+    <div id="chat-header">
+      <button id="chat-back">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="chat-header-avatar" id="chat-avatar">?</div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chat-name">—</div>
+        <div class="chat-header-sub" id="chat-sub">—</div>
+      </div>
+      <button class="edit-pencil" id="chat-edit-pencil" title="Editar contato">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-refresh-chat" title="Atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
+    </div>
+    <div id="wallpaper"></div>
+    <div id="messages"></div>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL CONFIGURAÇÃO ===================== -->
+<div id="cfg-overlay">
+  <div id="cfg-box">
+    <h2>Conectar ao Supabase</h2>
+    <p>Já vem configurado com o seu Supabase. Só mexe aqui se precisar trocar de projeto — fica salvo só neste navegador.</p>
+    <div id="cfg-error"></div>
+    <span class="cfg-label">Supabase URL</span>
+    <input class="cfg-input" id="cfg-url" placeholder="https://xxxxxxxx.supabase.co">
+    <span class="cfg-label">Anon key</span>
+    <input class="cfg-input" id="cfg-key" placeholder="eyJhbGciOi...">
+    <div class="cfg-btns">
+      <button id="cfg-cancel">Cancelar</button>
+      <button id="cfg-save">Salvar e carregar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ===================== MODAL EDITAR CONTATO ===================== -->
+<div id="rename-overlay">
+  <div id="rename-box">
+    <h2>Editar contato</h2>
+    <p id="rename-phone-label">—</p>
+    <div id="rename-error"></div>
+    <span class="cfg-label">Nome</span>
+    <input class="cfg-input" id="rename-input" placeholder="Nome do cliente" maxlength="80">
+    <div class="cfg-btns">
+      <button id="rename-cancel">Cancelar</button>
+      <button id="rename-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox"><img id="lightbox-img" src="" alt="mídia ampliada"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var STORAGE_KEY = "reicoxinha_viewer_config";
+  var PADRAO = {
+    url: "https://vpeyqgijajywgswmezlh.supabase.co",
+    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ"
+  };
+  var cfg = { url: PADRAO.url, key: PADRAO.key };
+  var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
+  var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count }
+  var currentPhone = null;
+
+  // ---------- helpers ----------
+  function carregarConfig() {
+    try {
+      var raw = localStorage.getItem(STORAGE_KEY);
+      if (raw) {
+        var salvo = JSON.parse(raw);
+        if (salvo && salvo.url && salvo.key) cfg = salvo;
+      }
+    } catch (e) {}
+  }
+  function salvarConfig() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(cfg));
+  }
+  function headers() {
+    return { apikey: cfg.key, Authorization: "Bearer " + cfg.key, "Content-Type": "application/json" };
+  }
+  function formatarTelefone(numero) {
+    var n = String(numero || "").replace(/\D/g, "");
+    if (n.length === 11) return "(" + n.slice(0, 2) + ") " + n.slice(2, 7) + "-" + n.slice(7);
+    if (n.length === 10) return "(" + n.slice(0, 2) + ") " + n.slice(2, 6) + "-" + n.slice(6);
+    return n;
+  }
+  function iniciais(nome) {
+    if (!nome) return "?";
+    return nome.trim().charAt(0).toUpperCase();
+  }
+  function horaCurta(iso) {
+    var d = new Date(iso);
+    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function dataLabel(iso) {
+    var d = new Date(iso);
+    var hoje = new Date();
+    var ontem = new Date();
+    ontem.setDate(hoje.getDate() - 1);
+    var mesmoDia = function (a, b) { return a.toDateString() === b.toDateString(); };
+    if (mesmoDia(d, hoje)) return "Hoje";
+    if (mesmoDia(d, ontem)) return "Ontem";
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+  function listaLabel(iso) {
+    var d = new Date(iso);
+    var hoje = new Date();
+    if (d.toDateString() === hoje.toDateString()) {
+      return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+    }
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" });
+  }
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+
+  // ---------- config modal ----------
+  var cfgOverlay = document.getElementById("cfg-overlay");
+  var cfgUrl = document.getElementById("cfg-url");
+  var cfgKey = document.getElementById("cfg-key");
+  var cfgError = document.getElementById("cfg-error");
+
+  function abrirConfig() {
+    cfgUrl.value = cfg.url || "";
+    cfgKey.value = cfg.key || "";
+    cfgError.style.display = "none";
+    cfgOverlay.classList.add("open");
+  }
+  function fecharConfig() { cfgOverlay.classList.remove("open"); }
+
+  document.getElementById("btn-gear").onclick = abrirConfig;
+  document.getElementById("btn-error-cfg").onclick = abrirConfig;
+  document.getElementById("cfg-cancel").onclick = fecharConfig;
+  document.getElementById("cfg-save").onclick = function () {
+    var url = cfgUrl.value.trim().replace(/\/+$/, "");
+    var key = cfgKey.value.trim();
+    if (!url || !key || !/^https?:\/\//.test(url)) {
+      cfgError.textContent = "Preenche a URL (começando com https://) e a anon key.";
+      cfgError.style.display = "block";
+      return;
+    }
+    cfg.url = url;
+    cfg.key = key;
+    salvarConfig();
+    fecharConfig();
+    carregarClientes();
+  };
+
+  // ---------- editar contato (nome) ----------
+  var renameOverlay = document.getElementById("rename-overlay");
+  var renameInput = document.getElementById("rename-input");
+  var renamePhoneLabel = document.getElementById("rename-phone-label");
+  var renameError = document.getElementById("rename-error");
+  var renamePhoneAtual = null;
+
+  function abrirRename(phone) {
+    renamePhoneAtual = phone;
+    renamePhoneLabel.textContent = formatarTelefone(phone);
+    renameInput.value = clientesMap[phone] || "";
+    renameError.style.display = "none";
+    renameOverlay.classList.add("open");
+    setTimeout(function () { renameInput.focus(); }, 50);
+  }
+  function fecharRename() { renameOverlay.classList.remove("open"); }
+  document.getElementById("rename-cancel").onclick = fecharRename;
+  document.getElementById("chat-edit-pencil").onclick = function () {
+    if (currentPhone) abrirRename(currentPhone);
+  };
+
+  document.getElementById("rename-save").onclick = function () {
+    var nome = renameInput.value.trim();
+    if (!nome) {
+      renameError.textContent = "Digita um nome.";
+      renameError.style.display = "block";
+      return;
+    }
+    var phone = renamePhoneAtual;
+    var jaTemCliente = Object.prototype.hasOwnProperty.call(clientesMap, phone);
+    var btnSalvar = document.getElementById("rename-save");
+    btnSalvar.textContent = "Salvando…";
+    btnSalvar.disabled = true;
+
+    var pedido;
+    if (jaTemCliente) {
+      // já existe linha em "clientes" pra esse telefone → atualiza o nome
+      pedido = fetch(cfg.url + "/rest/v1/clientes?phone=eq." + encodeURIComponent(phone), {
+        method: "PATCH",
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ name: nome })
+      });
+    } else {
+      // cliente só apareceu em conversas_bot ainda → cria a linha em "clientes"
+      pedido = fetch(cfg.url + "/rest/v1/clientes", {
+        method: "POST",
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ phone: phone, name: nome, debt: 0, tickets: 0, diamantes: 0 })
+      });
+    }
+
+    pedido.then(function (r) {
+      if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+      clientesMap[phone] = nome;
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      fecharRename();
+      renderLista();
+      if (currentPhone === phone) {
+        document.getElementById("chat-avatar").textContent = iniciais(nome);
+        document.getElementById("chat-name").textContent = nome;
+      }
+    }).catch(function (err) {
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      renameError.textContent = "Não consegui salvar: " + err.message;
+      renameError.style.display = "block";
+    });
+  };
+
+  // ---------- telas ----------
+  var screenList = document.getElementById("screen-list");
+  var screenChat = document.getElementById("screen-chat");
+  function irParaChat() { screenChat.classList.add("visible"); }
+  function voltarParaLista() { screenChat.classList.remove("visible"); currentPhone = null; }
+  document.getElementById("chat-back").onclick = voltarParaLista;
+
+  // ---------- estados da lista ----------
+  var loadingState = document.getElementById("loading-state");
+  var errorState = document.getElementById("error-state");
+  var emptyState = document.getElementById("empty-state");
+  var clientListEl = document.getElementById("client-list");
+  var errorMsgEl = document.getElementById("error-msg");
+
+  function mostrarEstado(nome) {
+    loadingState.style.display = nome === "loading" ? "flex" : "none";
+    errorState.style.display = nome === "error" ? "flex" : "none";
+    emptyState.style.display = nome === "empty" ? "flex" : "none";
+    clientListEl.style.display = nome === "list" ? "block" : "none";
+  }
+
+  // ---------- carregar clientes (agrupando conversas_bot por phone) ----------
+  function carregarClientes() {
+    mostrarEstado("loading");
+    var qs = "select=phone,role,conteudo,created_at&order=created_at.desc&limit=5000";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qs, { headers: headers() })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json();
+      })
+      .then(function (rows) {
+        groupsByPhone = {};
+        rows.forEach(function (m) {
+          if (!groupsByPhone[m.phone]) {
+            groupsByPhone[m.phone] = {
+              lastTime: m.created_at,
+              lastRole: m.role,
+              lastMsg: m.conteudo,
+              count: 0
+            };
+          }
+          groupsByPhone[m.phone].count++;
+        });
+        return carregarNomesClientes();
+      })
+      .then(renderLista)
+      .catch(function (err) {
+        errorMsgEl.textContent = err.message || "Erro desconhecido.";
+        mostrarEstado("error");
+      });
+  }
+
+  function carregarNomesClientes() {
+    // Tenta enriquecer com nome da tabela clientes; se falhar (tabela não existe,
+    // permissão negada etc.), segue mostrando só o telefone — não quebra a lista.
+    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name", { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        clientesMap = {};
+        (rows || []).forEach(function (c) { clientesMap[c.phone] = c.name; });
+      })
+      .catch(function () { clientesMap = {}; });
+  }
+
+  function renderLista() {
+    var phones = Object.keys(groupsByPhone);
+    if (phones.length === 0) { mostrarEstado("empty"); return; }
+    phones.sort(function (a, b) {
+      return new Date(groupsByPhone[b].lastTime) - new Date(groupsByPhone[a].lastTime);
+    });
+    var termo = document.getElementById("search-input").value.trim().toLowerCase();
+    var html = "";
+    phones.forEach(function (phone) {
+      var nome = clientesMap[phone] || formatarTelefone(phone);
+      if (termo && nome.toLowerCase().indexOf(termo) === -1 && phone.indexOf(termo) === -1) return;
+      var g = groupsByPhone[phone];
+      var prefixo = g.lastRole === "user" ? "" : "Você: ";
+      html += ''
+        + '<div class="client-row" data-phone="' + phone + '">'
+        +   '<div class="client-avatar">' + iniciais(nome) + '</div>'
+        +   '<div class="client-mid">'
+        +     '<div class="client-top-line">'
+        +       '<div class="client-name">' + escapeHtml(nome) + '</div>'
+        +       '<div class="client-time">' + listaLabel(g.lastTime) + '</div>'
+        +     '</div>'
+        +     '<div class="client-preview">'
+        +       '<span class="preview-role">' + prefixo + '</span>'
+        +       '<span>' + escapeHtml((g.lastMsg || "").replace(/\n/g, " ")).slice(0, 60) + '</span>'
+        +     '</div>'
+        +   '</div>'
+        +   '<button class="edit-pencil" data-phone="' + phone + '" title="Editar contato">'
+        +     '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>'
+        +   '</button>'
+        +   '<div class="client-count">' + g.count + '</div>'
+        + '</div>';
+    });
+    clientListEl.innerHTML = html;
+    mostrarEstado("list");
+    Array.prototype.forEach.call(document.querySelectorAll(".client-row"), function (row) {
+      row.onclick = function () { abrirChat(row.getAttribute("data-phone")); };
+    });
+    Array.prototype.forEach.call(document.querySelectorAll(".client-list .edit-pencil, #client-list .edit-pencil"), function (btn) {
+      btn.onclick = function (e) {
+        e.stopPropagation();
+        abrirRename(btn.getAttribute("data-phone"));
+      };
+    });
+  }
+
+  document.getElementById("search-input").oninput = function () {
+    if (clientListEl.style.display !== "none") renderLista();
+  };
+  document.getElementById("btn-refresh").onclick = function (e) {
+    e.currentTarget.classList.add("spin");
+    setTimeout(function () { e.currentTarget.classList.remove("spin"); }, 600);
+    carregarClientes();
+  };
+
+  // ---------- chat de um cliente ----------
+  var messagesEl = document.getElementById("messages");
+  function abrirChat(phone) {
+    currentPhone = phone;
+    var nome = clientesMap[phone] || formatarTelefone(phone);
+    document.getElementById("chat-avatar").textContent = iniciais(nome);
+    document.getElementById("chat-name").textContent = nome;
+    document.getElementById("chat-sub").textContent = formatarTelefone(phone);
+    irParaChat();
+    carregarMensagens(phone);
+  }
+  document.getElementById("btn-refresh-chat").onclick = function () {
+    if (currentPhone) carregarMensagens(currentPhone);
+  };
+
+  function carregarMensagens(phone) {
+    messagesEl.innerHTML = '<div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div>';
+    var qsComMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at,midia_base64,midia_mime&order=created_at.asc&limit=2000";
+    var qsSemMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at&order=created_at.asc&limit=2000";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qsComMidia, { headers: headers() })
+      .then(function (r) {
+        // Se as colunas midia_base64/midia_mime ainda não existirem na tabela,
+        // repete a busca sem elas em vez de quebrar a tela toda.
+        if (!r.ok) return fetch(cfg.url + "/rest/v1/conversas_bot?" + qsSemMidia, { headers: headers() });
+        return r;
+      })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json();
+      })
+      .then(renderMensagens)
+      .catch(function (err) {
+        messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Erro ao carregar: ' + escapeHtml(err.message) + '</div>';
+      });
+  }
+
+  function renderMensagens(msgs) {
+    if (!msgs || msgs.length === 0) {
+      messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Nenhuma mensagem encontrada.</div>';
+      return;
+    }
+    var html = "";
+    var diaAtual = null;
+    msgs.forEach(function (m) {
+      var label = dataLabel(m.created_at);
+      if (label !== diaAtual) {
+        html += '<div class="date-pill"><span>' + label + '</span></div>';
+        diaAtual = label;
+      }
+      var role = m.role === "user" ? "user" : "assistant";
+      var imgHtml = "";
+      if (m.midia_base64 && m.midia_mime) {
+        if (m.midia_mime.indexOf("pdf") !== -1) {
+          imgHtml = '<a class="bubble-pdf" href="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" target="_blank" rel="noopener">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+            + '<span>Ver PDF</span></a>';
+        } else {
+          imgHtml = '<img class="bubble-img" src="data:' + m.midia_mime + ';base64,' + m.midia_base64 + '" alt="mídia enviada">';
+        }
+      }
+      html += ''
+        + '<div class="msg-row ' + role + '">'
+        +   '<div class="bubble ' + role + '">'
+        +     imgHtml
+        +     '<div class="bubble-text">' + escapeHtml(m.conteudo) + '<span class="bubble-time">' + horaCurta(m.created_at) + '</span></div>'
+        +   '</div>'
+        + '</div>';
+    });
+    messagesEl.innerHTML = html;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    Array.prototype.forEach.call(messagesEl.querySelectorAll(".bubble-img"), function (img) {
+      img.onclick = function () {
+        document.getElementById("lightbox-img").src = img.src;
+        document.getElementById("lightbox").classList.add("open");
+      };
+    });
+  }
+  document.getElementById("lightbox").onclick = function () {
+    this.classList.remove("open");
+  };
+
+  // ---------- boot ----------
+  carregarConfig();
+  carregarClientes();
+})();
+</script>
+</body>
+</html>
