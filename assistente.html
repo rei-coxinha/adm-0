@@ -125,27 +125,6 @@
   #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:150; justify-content:center; align-items:center; padding:20px; }
   #lightbox.open { display:flex; }
   #lightbox img { max-width:100%; max-height:100%; border-radius:6px; }
-
-  /* ── TOGGLE BOT ATIVO/PAUSADO ── */
-  #btn-pausa { display:flex; align-items:center; gap:6px; border:none; border-radius:16px; padding:7px 12px; font-size:12.5px; font-weight:700; cursor:pointer; flex-shrink:0; margin-right:2px; font-family:inherit; }
-  #btn-pausa.ativo { background:#103529; color:#25D366; }
-  #btn-pausa.pausado { background:#3B2A0F; color:#F5A623; }
-  #btn-pausa .dot { width:7px; height:7px; border-radius:50%; background:currentColor; flex-shrink:0; }
-
-  /* ── BOTÃO EXECUTAR (dentro da bolha do cliente, quando pausado) ── */
-  .btn-executar { display:inline-flex; align-items:center; gap:5px; background:#1F6FEB; color:#fff; border:none; border-radius:14px; padding:6px 12px; font-size:12.5px; font-weight:700; margin-top:6px; cursor:pointer; font-family:inherit; }
-  .btn-executar:active { background:#1857b8; }
-  .btn-executar[disabled] { opacity:.55; pointer-events:none; }
-  .btn-executar svg { width:13px; height:13px; }
-
-  /* ── BARRA DE ENVIO MANUAL (só aparece com o bot pausado) ── */
-  #manual-bar { display:none; flex-shrink:0; align-items:flex-end; gap:8px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:#1F2C34; z-index:10; }
-  #manual-bar.show { display:flex; }
-  #manual-input { flex:1; background:#2A3942; border:none; border-radius:20px; padding:11px 16px; color:#E9EDEF; font-size:15px; font-family:inherit; outline:none; resize:none; max-height:110px; line-height:19px; }
-  #manual-input::placeholder { color:#8696A0; }
-  #manual-send { width:42px; height:42px; border-radius:50%; border:none; background:#25D366; color:#04120D; display:flex; align-items:center; justify-content:center; flex-shrink:0; cursor:pointer; }
-  #manual-send:disabled { opacity:.5; }
-  #manual-send svg { width:19px; height:19px; }
 </style>
 </head>
 <body>
@@ -202,9 +181,6 @@
         <div class="chat-header-name" id="chat-name">—</div>
         <div class="chat-header-sub" id="chat-sub">—</div>
       </div>
-      <button id="btn-pausa" class="ativo" title="Ativar/pausar respostas automáticas">
-        <span class="dot"></span><span id="btn-pausa-label">Ativo</span>
-      </button>
       <button class="icon-btn" id="chat-edit-pencil" title="Editar contato">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
       </button>
@@ -217,12 +193,6 @@
       <div id="messages"></div>
       <button id="btn-down" title="Ir para a última mensagem">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-    </div>
-    <div id="manual-bar">
-      <textarea id="manual-input" rows="1" placeholder="Mensagem (bot pausado)…"></textarea>
-      <button id="manual-send" title="Enviar">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="M2 21l21-9L2 3v7l15 2-15 2v7z"/></svg>
       </button>
     </div>
   </div>
@@ -251,14 +221,8 @@
   "use strict";
 
   var cfg = { url: "https://vpeyqgijajywgswmezlh.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ" };
-  // URL do backend Deno (mesmo domínio do webhook). Ajuste se o endereço mudar.
-  var BACKEND_URL = "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/whatsapp";
-  function adminHeaders() {
-    return { "Content-Type": "application/json", "Authorization": "Bearer " + cfg.key };
-  }
   var LIDAS_KEY = "reicoxinha_lidas"; // phone -> data da última mensagem já lida (só neste aparelho)
   var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
-  var pausaMap = {};      // phone -> true/false (bot_pausado, da tabela clientes)
   var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count, naoLidas }
   var currentPhone = null;
   var colunasLista = "phone,role,conteudo,created_at,midia_mime";
@@ -444,13 +408,27 @@
   // ---------- telas ----------
   var screenList = document.getElementById("screen-list");
   var screenChat = document.getElementById("screen-chat");
-  function irParaChat() { screenChat.classList.add("visible"); }
+  function irParaChat() {
+    screenChat.classList.add("visible");
+    history.pushState({ tela: "chat" }, "", "#chat");
+  }
   function voltarParaLista() {
     screenChat.classList.remove("visible");
     currentPhone = null;
     renderLista();
   }
-  document.getElementById("chat-back").onclick = voltarParaLista;
+  document.getElementById("chat-back").onclick = function () {
+    if (history.state && history.state.tela === "chat") {
+      history.back();
+    } else {
+      voltarParaLista();
+    }
+  };
+  window.addEventListener("popstate", function () {
+    if (screenChat.classList.contains("visible")) {
+      voltarParaLista();
+    }
+  });
 
   // ---------- estados da lista ----------
   var loadingState = document.getElementById("loading-state");
@@ -536,17 +514,13 @@
   function carregarNomesClientes() {
     // Tenta enriquecer com nome da tabela clientes; se falhar (tabela não existe,
     // permissão negada etc.), segue mostrando só o telefone — não quebra a lista.
-    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name,bot_pausado", { headers: headers() })
+    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name", { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         clientesMap = {};
-        pausaMap = {};
-        (rows || []).forEach(function (c) {
-          clientesMap[c.phone] = c.name;
-          pausaMap[c.phone] = !!c.bot_pausado;
-        });
+        (rows || []).forEach(function (c) { clientesMap[c.phone] = c.name; });
       })
-      .catch(function () { clientesMap = {}; pausaMap = {}; });
+      .catch(function () { clientesMap = {}; });
   }
 
   function renderLista() {
@@ -619,115 +593,12 @@
   // ---------- conversa de um cliente ----------
   var messagesEl = document.getElementById("messages");
   var btnDown = document.getElementById("btn-down");
-  var btnPausa = document.getElementById("btn-pausa");
-  var btnPausaLabel = document.getElementById("btn-pausa-label");
-  var manualBar = document.getElementById("manual-bar");
-  var manualInput = document.getElementById("manual-input");
-  var manualSend = document.getElementById("manual-send");
-
-  function atualizarUiPausa(phone) {
-    var pausado = !!pausaMap[phone];
-    btnPausa.classList.toggle("ativo", !pausado);
-    btnPausa.classList.toggle("pausado", pausado);
-    btnPausaLabel.textContent = pausado ? "Pausado" : "Ativo";
-    manualBar.classList.toggle("show", pausado);
-  }
-
-  btnPausa.onclick = function () {
-    if (!currentPhone) return;
-    var novoEstado = !pausaMap[currentPhone];
-    btnPausa.disabled = true;
-    var urlPausa = BACKEND_URL + "/admin/pausa";
-    var hdrs = adminHeaders();
-    alert("Tentando:\n" + urlPausa + "\nAuth: " + (hdrs["Authorization"] ? "sim" : "nao"));
-    fetch(urlPausa, {
-      method: "POST",
-      headers: hdrs,
-      body: JSON.stringify({ phone: currentPhone, pausado: novoEstado })
-    })
-      .then(function (r) {
-        var status = r.status;
-        return r.text().then(function (txt) {
-          var json = null;
-          try { json = JSON.parse(txt); } catch(e) {}
-          if (!r.ok) {
-            var detalhe = (json && (json.erro || json.error || json.message)) || txt || "sem corpo";
-            throw new Error("HTTP " + status + "\n" + detalhe);
-          }
-          return json;
-        });
-      })
-      .then(function () {
-        pausaMap[currentPhone] = novoEstado;
-        atualizarUiPausa(currentPhone);
-        carregarMensagens(currentPhone, true);
-      })
-      .catch(function (err) {
-        alert("ERRO:\n" + urlPausa + "\n" + (err.message || err));
-      })
-      .then(function () { btnPausa.disabled = false; });
-  };
-
-  // ---------- envio manual (bot pausado) ----------
-  function ajustarAlturaManualInput() {
-    manualInput.style.height = "auto";
-    manualInput.style.height = Math.min(manualInput.scrollHeight, 110) + "px";
-  }
-  manualInput.oninput = ajustarAlturaManualInput;
-  manualInput.onkeydown = function (e) {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      enviarManual();
-    }
-  };
-  manualSend.onclick = enviarManual;
-
-  function enviarManual() {
-    var texto = manualInput.value.trim();
-    if (!texto || !currentPhone) return;
-    manualSend.disabled = true;
-    fetch(BACKEND_URL + "/admin/enviar", {
-      method: "POST",
-      headers: adminHeaders(),
-      body: JSON.stringify({ phone: currentPhone, texto: texto })
-    })
-      .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
-      .then(function () {
-        manualInput.value = "";
-        ajustarAlturaManualInput();
-        carregarMensagens(currentPhone, true);
-      })
-      .catch(function (err) {
-        alert("Não consegui enviar: " + (err.message || err));
-      })
-      .then(function () { manualSend.disabled = false; });
-  }
-
-  // ---------- executar mensagem específica (bot pausado) ----------
-  function executarMensagem(phone, texto, btnEl) {
-    if (btnEl) { btnEl.disabled = true; btnEl.textContent = "Executando…"; }
-    fetch(BACKEND_URL + "/admin/executar", {
-      method: "POST",
-      headers: adminHeaders(),
-      body: JSON.stringify({ phone: phone, texto: texto })
-    })
-      .then(function (r) { return r.ok ? r.json() : r.json().then(function (j) { throw new Error(j.erro || ("HTTP " + r.status)); }); })
-      .then(function () {
-        if (currentPhone === phone) carregarMensagens(phone, true);
-      })
-      .catch(function (err) {
-        alert("Não consegui executar: " + (err.message || err));
-        if (btnEl) { btnEl.disabled = false; btnEl.textContent = "▶ Executar"; }
-      });
-  }
-
   function abrirChat(phone) {
     currentPhone = phone;
     var nome = clientesMap[phone] || formatarTelefone(phone);
     document.getElementById("chat-avatar").innerHTML = AVATAR;
     document.getElementById("chat-name").textContent = nome;
     document.getElementById("chat-sub").textContent = formatarTelefone(phone);
-    atualizarUiPausa(phone);
     marcarLida(phone);
     irParaChat();
     carregarMensagens(phone);
@@ -806,21 +677,12 @@
         }
       }
       var cls = role + (primeira ? " first" : "");
-      // Botão "Executar" só nas mensagens do cliente, só quando o bot está pausado
-      // para esse telefone — dispara o pipeline automático (Gemini/pedido/pix)
-      // manualmente para essa mensagem específica.
-      var btnExecutarHtml = "";
-      if (role === "user" && pausaMap[currentPhone] && m.conteudo) {
-        btnExecutarHtml = '<button class="btn-executar" data-texto="' + escapeHtml(m.conteudo) + '">'
-          + '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg> Executar</button>';
-      }
       html += ''
         + '<div class="msg-row ' + cls + '">'
         +   '<div class="bubble ' + cls + '">'
         +     midiaHtml
         +     '<div class="bubble-text">' + formatarWpp(textoExibido(m))
         +       '<span class="bubble-time">' + horaCurta(m.created_at) + (role === "assistant" ? TICKS : '') + '</span></div>'
-        +     btnExecutarHtml
         +   '</div>'
         + '</div>';
     });
@@ -830,11 +692,6 @@
       img.onclick = function () {
         document.getElementById("lightbox-img").src = img.src;
         document.getElementById("lightbox").classList.add("open");
-      };
-    });
-    Array.prototype.forEach.call(messagesEl.querySelectorAll(".btn-executar"), function (btn) {
-      btn.onclick = function () {
-        executarMensagem(currentPhone, btn.getAttribute("data-texto"), btn);
       };
     });
   }
