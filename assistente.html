@@ -30,7 +30,10 @@
   #chips { display:flex; gap:8px; padding:12px 0 10px; }
   .chip { background:#1D282F; color:#8696A0; border:none; border-radius:18px; padding:7px 14px; font-size:14.5px; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:6px; }
   .chip.active { background:#103529; color:#25D366; }
-  #chip-count:empty { display:none; }
+  .chip-enc.active { background:#3A2410; color:#F5A623; }
+  #chip-count:empty, #chip-count-enc:empty { display:none; }
+  .pend-flag { font-size:13px; margin-right:1px; flex-shrink:0; }
+  .client-preview.pend-motivo span { color:#F5A623; }
 
   #client-list { flex:1; overflow-y:auto; padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
   #client-list::-webkit-scrollbar { width:4px; }
@@ -146,6 +149,7 @@
       <div id="chips">
         <button class="chip active" data-f="tudo">Tudo</button>
         <button class="chip" data-f="naolidas">Não lidas <span id="chip-count"></span></button>
+        <button class="chip chip-enc" data-f="encaminhadas">🚩 Encaminhadas <span id="chip-count-enc"></span></button>
       </div>
     </div>
 
@@ -224,6 +228,7 @@
   var LIDAS_KEY = "reicoxinha_lidas"; // phone -> data da última mensagem já lida (só neste aparelho)
   var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
   var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count, naoLidas }
+  var pendentesMap = {};  // phone -> { motivo, criado_em } — conversas que a IA não conseguiu resolver sozinha
   var currentPhone = null;
   var colunasLista = "phone,role,conteudo,created_at,midia_mime";
   var ultimoVisto = null; // created_at da mensagem mais recente já carregada
@@ -334,6 +339,34 @@
     g.naoLidas = 0;
     lidas[phone] = g.lastTime;
     salvarLidas();
+    // Sincroniza com o servidor (tabela clientes) pra funcionar em qualquer
+    // aparelho — exatamente como o "lido" do WhatsApp sincroniza entre celular
+    // e web. Se o cliente ainda não tiver linha em "clientes", o PATCH não
+    // altera nada e é ignorado silenciosamente.
+    fetch(cfg.url + "/rest/v1/clientes?phone=eq." + encodeURIComponent(phone), {
+      method: "PATCH",
+      headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+      body: JSON.stringify({ admin_lida_em: g.lastTime })
+    }).catch(function () {});
+  }
+
+  // ---------- conversas encaminhadas (aba "Encaminhadas") ----------
+  function carregarPendentes() {
+    return fetch(cfg.url + "/rest/v1/conversas_pendentes?select=phone,motivo,criado_em", { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        pendentesMap = {};
+        (rows || []).forEach(function (p) { pendentesMap[p.phone] = p; });
+      })
+      .catch(function () { pendentesMap = {}; });
+  }
+  function resolverConversaPendente(phone) {
+    if (!pendentesMap[phone]) return;
+    delete pendentesMap[phone];
+    fetch(cfg.url + "/rest/v1/conversas_pendentes?phone=eq." + encodeURIComponent(phone), {
+      method: "DELETE",
+      headers: headers()
+    }).catch(function () {});
   }
 
   // ---------- editar contato (nome) ----------
@@ -471,6 +504,11 @@
     }
     buscarPagina(0)
       .then(function () {
+        // Busca nomes + "lido até" do servidor ANTES de contar as não lidas,
+        // pra sincronizar com o que já foi lido em outro aparelho (como no WhatsApp).
+        return carregarNomesClientes();
+      })
+      .then(function () {
         groupsByPhone = {};
         todas.forEach(function (m) {
           var g = groupsByPhone[m.phone];
@@ -502,7 +540,7 @@
         }
         if (currentPhone) marcarLida(currentPhone);
         ultimoVisto = todas.length ? todas[0].created_at : "1970-01-01T00:00:00+00:00";
-        return carregarNomesClientes();
+        return carregarPendentes();
       })
       .then(renderLista)
       .catch(function (err) {
@@ -514,11 +552,21 @@
   function carregarNomesClientes() {
     // Tenta enriquecer com nome da tabela clientes; se falhar (tabela não existe,
     // permissão negada etc.), segue mostrando só o telefone — não quebra a lista.
-    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name", { headers: headers() })
+    // admin_lida_em é o "lido até" salvo no servidor: sincroniza a bolinha de não
+    // lidas entre aparelhos diferentes (celular, computador...), como no WhatsApp.
+    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name,admin_lida_em", { headers: headers() })
       .then(function (r) { return r.ok ? r.json() : []; })
       .then(function (rows) {
         clientesMap = {};
-        (rows || []).forEach(function (c) { clientesMap[c.phone] = c.name; });
+        var mudouLocal = false;
+        (rows || []).forEach(function (c) {
+          clientesMap[c.phone] = c.name;
+          if (c.admin_lida_em && (!lidas[c.phone] || new Date(c.admin_lida_em) > new Date(lidas[c.phone]))) {
+            lidas[c.phone] = c.admin_lida_em;
+            mudouLocal = true;
+          }
+        });
+        if (mudouLocal) salvarLidas();
       })
       .catch(function () { clientesMap = {}; });
   }
@@ -533,35 +581,47 @@
     var termo = document.getElementById("search-input").value.trim().toLowerCase();
     var digitos = termo.replace(/\D/g, "");
     var conversasNaoLidas = 0;
-    phones.forEach(function (p) { if (groupsByPhone[p].naoLidas > 0) conversasNaoLidas++; });
+    var conversasEncaminhadas = 0;
+    phones.forEach(function (p) {
+      if (groupsByPhone[p].naoLidas > 0) conversasNaoLidas++;
+      if (pendentesMap[p]) conversasEncaminhadas++;
+    });
     document.getElementById("chip-count").textContent = conversasNaoLidas ? String(conversasNaoLidas) : "";
+    document.getElementById("chip-count-enc").textContent = conversasEncaminhadas ? String(conversasEncaminhadas) : "";
     document.title = (conversasNaoLidas ? "(" + conversasNaoLidas + ") " : "") + "Conversas — Rei da Coxinha";
 
     var html = "";
     phones.forEach(function (phone) {
       var g = groupsByPhone[phone];
+      var pend = pendentesMap[phone];
       if (filtroAtual === "naolidas" && !g.naoLidas) return;
+      if (filtroAtual === "encaminhadas" && !pend) return;
       var nome = clientesMap[phone] || formatarTelefone(phone);
       if (termo && nome.toLowerCase().indexOf(termo) === -1 && !(digitos && phone.indexOf(digitos) !== -1)) return;
       var naoLida = g.naoLidas > 0;
-      var previa = aplicarMarcas(String(g.lastMsg || "").replace(/\n/g, " "), false).slice(0, 90);
+      // Na aba Encaminhadas, mostra o motivo do encaminhamento no lugar da última mensagem
+      var previaBase = (pend && filtroAtual === "encaminhadas") ? pend.motivo : String(g.lastMsg || "").replace(/\n/g, " ");
+      var previa = aplicarMarcas(previaBase, false).slice(0, 90);
+      var previewCls = "client-preview" + (pend && filtroAtual === "encaminhadas" ? " pend-motivo" : "");
       html += ''
         + '<div class="client-row' + (naoLida ? ' unread' : '') + '" data-phone="' + phone + '">'
         +   '<div class="client-avatar">' + AVATAR + '</div>'
         +   '<div class="client-mid">'
         +     '<div class="client-top-line">'
-        +       '<div class="client-name">' + escapeHtml(nome) + '</div>'
+        +       '<div class="client-name">' + (pend ? '<span class="pend-flag" title="Precisa de atenção">🚩</span>' : '') + escapeHtml(nome) + '</div>'
         +       '<div class="client-time">' + listaLabel(g.lastTime) + '</div>'
         +     '</div>'
         +     '<div class="client-bottom-line">'
-        +       '<div class="client-preview">' + (g.lastRole === "user" ? '' : TICKS) + '<span>' + escapeHtml(previa) + '</span></div>'
+        +       '<div class="' + previewCls + '">' + (previewCls.indexOf("pend-motivo") === -1 && g.lastRole !== "user" ? TICKS : '') + '<span>' + escapeHtml(previa) + '</span></div>'
         +       (naoLida ? '<div class="badge">' + g.naoLidas + '</div>' : '')
         +     '</div>'
         +   '</div>'
         + '</div>';
     });
     if (!html) {
-      html = '<div class="lista-vazia">' + (filtroAtual === "naolidas" && !termo ? "Nenhuma conversa não lida" : "Nenhum resultado") + '</div>';
+      var vazioMsg = filtroAtual === "encaminhadas" && !termo ? "Nenhuma conversa encaminhada" :
+        (filtroAtual === "naolidas" && !termo ? "Nenhuma conversa não lida" : "Nenhum resultado");
+      html = '<div class="lista-vazia">' + vazioMsg + '</div>';
     }
     var rolagem = clientListEl.scrollTop;
     clientListEl.innerHTML = html;
@@ -600,6 +660,7 @@
     document.getElementById("chat-name").textContent = nome;
     document.getElementById("chat-sub").textContent = formatarTelefone(phone);
     marcarLida(phone);
+    resolverConversaPendente(phone); // Jeff abriu a conversa: sai da aba Encaminhadas
     irParaChat();
     carregarMensagens(phone);
   }
@@ -730,7 +791,7 @@
         });
         salvarLidas();
         var nomes = telefoneNovo ? carregarNomesClientes() : Promise.resolve();
-        return nomes.then(function () {
+        return nomes.then(carregarPendentes).then(function () {
           renderLista();
           if (chatAtualMudou) carregarMensagens(currentPhone, true);
         });
@@ -739,6 +800,8 @@
       .then(function () { verificando = false; });
   }
   setInterval(verificarNovas, POLL_MS);
+  // Atualiza a aba Encaminhadas independente de mensagem nova ter chegado ou não.
+  setInterval(function () { if (!document.hidden) carregarPendentes().then(renderLista); }, POLL_MS);
   document.addEventListener("visibilitychange", function () { if (!document.hidden) verificarNovas(); });
 
   // ---------- boot ----------
