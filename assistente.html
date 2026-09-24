@@ -1,0 +1,892 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<title>Conversas — Rei da Coxinha</title>
+<meta name="theme-color" content="#0B141A">
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; overscroll-behavior: none; }
+  body { background: #0B141A; font-family: -apple-system, 'SF Pro Text', 'Helvetica Neue', Roboto, 'Segoe UI', Arial, sans-serif; }
+  /* position:fixed preenche exatamente a área visível (no PWA o 100dvh passava do tamanho e cortava em cima e embaixo) */
+  #app { position: fixed; top: 0; bottom: 0; left: 0; right: 0; width: 100%; max-width: 480px; margin: 0 auto; display: flex; flex-direction: column; background: #0B141A; overflow: hidden; }
+
+  /* ── TELA: LISTA DE CONVERSAS ── */
+  #screen-list { position:absolute; inset:0; display:flex; flex-direction:column; transition: transform .22s ease; z-index: 2; background:#0B141A; }
+  #screen-list.hidden { transform: translateX(-100%); pointer-events: none; }
+  #list-header { background:#0B141A; padding:calc(14px + env(safe-area-inset-top)) 16px 2px; flex-shrink:0; }
+  #list-header-top { display:flex; align-items:center; justify-content:space-between; margin-bottom:12px; }
+  #list-title { color:#25D366; font-size:25px; font-weight:700; letter-spacing:-.4px; }
+  .icon-btn { width:40px; height:40px; border-radius:50%; border:none; background:transparent; color:#AEBAC1; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition: background .15s; }
+  .icon-btn:active { background:#202C33; }
+  .icon-btn svg { width:21px; height:21px; }
+  .icon-btn.spin svg { animation: spin .6s linear; }
+  @keyframes spin { from{transform:rotate(0)} to{transform:rotate(360deg)} }
+  #search-wrap { background:#1D282F; border-radius:24px; display:flex; align-items:center; gap:12px; padding:0 16px; height:44px; }
+  #search-wrap svg { width:18px; height:18px; color:#8696A0; flex-shrink:0; }
+  #search-input { flex:1; background:transparent; border:none; outline:none; color:#E9EDEF; font-size:16px; font-family:inherit; }
+  #search-input::placeholder { color:#8696A0; }
+  #chips { display:flex; gap:8px; padding:12px 0 10px; }
+  .chip { background:#1D282F; color:#8696A0; border:none; border-radius:18px; padding:7px 14px; font-size:14.5px; font-family:inherit; cursor:pointer; display:flex; align-items:center; gap:6px; }
+  .chip.active { background:#103529; color:#25D366; }
+  .chip-enc.active { background:#3A2410; color:#F5A623; }
+  #chip-count:empty, #chip-count-enc:empty { display:none; }
+  .pend-flag { font-size:13px; margin-right:1px; flex-shrink:0; }
+  .client-preview.pend-motivo span { color:#F5A623; }
+
+  #client-list { flex:1; overflow-y:auto; padding-bottom:calc(12px + env(safe-area-inset-bottom)); }
+  #client-list::-webkit-scrollbar { width:4px; }
+  #client-list::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .client-row { display:flex; align-items:center; gap:14px; padding:10px 16px; cursor:pointer; }
+  .client-row:active { background:#111B21; }
+  .client-avatar, .chat-header-avatar { border-radius:50%; background:#6B7C85; overflow:hidden; flex-shrink:0; }
+  .client-avatar { width:52px; height:52px; }
+  .client-avatar svg, .chat-header-avatar svg { width:100%; height:100%; display:block; fill:#DFE5E7; }
+  .client-mid { flex:1; min-width:0; }
+  .client-top-line { display:flex; justify-content:space-between; align-items:baseline; gap:8px; }
+  .client-name { color:#E9EDEF; font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .client-time { color:#8696A0; font-size:12px; flex-shrink:0; }
+  .client-bottom-line { display:flex; align-items:center; gap:8px; margin-top:3px; }
+  .client-preview { flex:1; min-width:0; color:#8696A0; font-size:14.5px; display:flex; align-items:center; gap:4px; }
+  .client-preview span { min-width:0; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .client-preview .ticks { flex-shrink:0; }
+  .client-row.unread .client-name { font-weight:600; }
+  .client-row.unread .client-time { color:#25D366; }
+  .client-row.unread .client-preview { color:#D1D7DB; }
+  .badge { background:#25D366; color:#0B141A; font-size:12px; font-weight:700; min-width:21px; height:21px; border-radius:11px; padding:0 6px; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .lista-vazia { color:#8696A0; font-size:14px; text-align:center; padding:40px 20px; }
+
+  #empty-state, #loading-state, #error-state { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:10px; padding:40px 30px; text-align:center; }
+  #empty-state { display:none; }
+  #error-state { display:none; }
+  .state-icon { font-size:38px; opacity:.6; }
+  .state-title { color:#E9EDEF; font-size:15px; font-weight:600; }
+  .state-sub { color:#8696A0; font-size:13px; line-height:1.5; }
+  .state-btn { margin-top:6px; background:#25D366; color:#04120D; font-weight:700; font-size:13.5px; border:none; border-radius:20px; padding:10px 20px; cursor:pointer; }
+  .spinner { width:26px; height:26px; border-radius:50%; border:3px solid #2A3942; border-top-color:#25D366; animation: spin .7s linear infinite; }
+
+  /* ── TELA: CONVERSA ── */
+  #screen-chat { position:absolute; inset:0; display:flex; flex-direction:column; transform: translateX(100%); transition: transform .22s ease; z-index:3; background:#0B141A; }
+  #screen-chat.visible { transform: translateX(0); }
+  #chat-header { background:#1F2C34; padding:calc(6px + env(safe-area-inset-top)) 4px 6px 2px; display:flex; align-items:center; gap:2px; flex-shrink:0; z-index:10; }
+  #chat-back { background:none; border:none; color:#AEBAC1; cursor:pointer; padding:8px 4px 8px 8px; display:flex; }
+  #chat-back svg { width:24px; height:24px; }
+  .chat-header-avatar { width:40px; height:40px; margin:0 10px 0 4px; }
+  .chat-header-info { flex:1; min-width:0; }
+  .chat-header-name { color:#E9EDEF; font-weight:500; font-size:17px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .chat-header-sub { color:#8696A0; font-size:12.5px; margin-top:1px; }
+
+  #chat-body { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; }
+  #wallpaper { position:absolute; inset:0; background-image: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.02'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E"); pointer-events:none; z-index:0; }
+  #messages { flex:1; overflow-y:auto; padding:8px 0 calc(14px + env(safe-area-inset-bottom)); display:flex; flex-direction:column; position:relative; z-index:1; }
+  #messages::-webkit-scrollbar { width:4px; }
+  #messages::-webkit-scrollbar-thumb { background:#2A3942; border-radius:4px; }
+  .date-pill { display:flex; justify-content:center; margin:10px 0 8px; }
+  .date-pill span { background:#182229; border-radius:8px; padding:5px 12px; color:#8696A0; font-size:12.5px; box-shadow:0 1px 0.5px rgba(0,0,0,.3); }
+  .msg-row { display:flex; margin-top:2px; }
+  .msg-row.first { margin-top:8px; }
+  /* cliente = recebida (esquerda) | bot = enviada (direita, verde, com tiques azuis) */
+  .msg-row.user { justify-content:flex-start; padding:0 48px 0 12px; }
+  .msg-row.assistant { justify-content:flex-end; padding:0 12px 0 48px; }
+  .bubble { padding:6px 7px 5px 9px; max-width:100%; min-width:64px; position:relative; box-shadow:0 1px 0.5px rgba(0,0,0,.3); word-wrap:break-word; border-radius:8px; }
+  .bubble.user { background:#202C33; }
+  .bubble.assistant { background:#005C4B; }
+  .bubble.user.first { border-top-left-radius:0; }
+  .bubble.assistant.first { border-top-right-radius:0; }
+  .bubble.user.first::before { content:""; position:absolute; top:0; left:-8px; width:8px; height:13px; background:#202C33; clip-path:polygon(100% 0, 100% 100%, 0 0); }
+  .bubble.assistant.first::after { content:""; position:absolute; top:0; right:-8px; width:8px; height:13px; background:#005C4B; clip-path:polygon(0 0, 0 100%, 100% 0); }
+  .bubble-text { color:#E9EDEF; font-size:15px; line-height:20px; word-break:break-word; white-space:pre-wrap; }
+  .bubble-text strong { font-weight:700; }
+  .bubble-text a.lnk { color:#53BDEB; text-decoration:none; }
+  .bubble-text a.lnk:active { text-decoration:underline; }
+  .bubble-time { color:rgba(255,255,255,.55); font-size:11px; line-height:15px; float:right; margin:5px 0 -4px 10px; display:inline-flex; align-items:center; gap:3px; white-space:nowrap; }
+  .bubble-img { display:block; max-width:100%; width:240px; border-radius:6px; margin:0 0 4px; cursor:pointer; }
+  .bubble-audio { display:block; width:230px; max-width:100%; height:38px; margin-bottom:6px; }
+  .bubble-pdf { display:flex; align-items:center; gap:8px; background:rgba(0,0,0,.2); border-radius:8px; padding:10px 12px; margin-bottom:6px; text-decoration:none; color:#E9EDEF; font-size:13.5px; }
+  .bubble-pdf svg { width:20px; height:20px; color:#f87171; flex-shrink:0; }
+  #btn-down { position:absolute; right:12px; bottom:12px; width:42px; height:42px; border-radius:50%; background:#1F2C34; border:none; color:#AEBAC1; display:none; align-items:center; justify-content:center; z-index:5; box-shadow:0 2px 6px rgba(0,0,0,.45); cursor:pointer; }
+  #btn-down.show { display:flex; }
+  #btn-down svg { width:22px; height:22px; }
+
+  /* ── BARRA DE ENVIO (resposta manual do Jeff) ── */
+  #chat-input-bar { flex-shrink:0; display:flex; align-items:flex-end; gap:8px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:#0B141A; }
+  #chat-input { flex:1; background:#1F2C34; border:none; border-radius:22px; padding:11px 16px; color:#E9EDEF; font-size:15px; font-family:inherit; outline:none; resize:none; max-height:110px; line-height:20px; }
+  #chat-input::placeholder { color:#8696A0; }
+  #chat-send { width:44px; height:44px; border-radius:50%; border:none; background:#25D366; color:#04120D; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:opacity .15s, transform .1s; }
+  #chat-send:active { transform:scale(.92); }
+  #chat-send:disabled { opacity:.4; cursor:default; }
+  #chat-send svg { width:20px; height:20px; margin-left:1px; }
+  #chat-send .spinner { width:18px; height:18px; border-width:2px; margin:0; }
+
+  /* ── MODAL EDITAR CONTATO ── */
+  #rename-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:110; justify-content:center; align-items:flex-end; }
+  #rename-overlay.open { display:flex; }
+  #rename-box { background:#1F2C34; border-radius:18px 18px 0 0; width:100%; max-width:480px; padding:20px 20px 30px; }
+  #rename-box h2 { color:#E9EDEF; font-size:16px; font-weight:700; margin-bottom:4px; }
+  #rename-phone-label { color:#8696A0; font-size:12.5px; margin-bottom:16px; }
+  #rename-error { color:#f87171; font-size:12px; margin:-8px 0 12px; display:none; }
+  .cfg-label { color:#8696A0; font-size:11px; font-weight:600; text-transform:uppercase; letter-spacing:.05em; margin-bottom:6px; display:block; }
+  .cfg-input { width:100%; background:#2A3942; border:1.5px solid #2A3942; border-radius:10px; padding:11px 13px; color:#E9EDEF; font-size:15px; font-family:inherit; outline:none; margin-bottom:14px; }
+  .cfg-input:focus { border-color:#25D366; }
+  .cfg-btns { display:flex; gap:8px; margin-top:4px; }
+  .cfg-btns button { flex:1; padding:12px; border:none; border-radius:22px; font-weight:700; font-size:14px; cursor:pointer; }
+  #rename-save { background:#25D366; color:#04120D; }
+  #rename-cancel { background:#2A3942; color:#E9EDEF; }
+
+  /* ── LIGHTBOX DE IMAGEM ── */
+  #lightbox { display:none; position:fixed; inset:0; background:rgba(0,0,0,.92); z-index:150; justify-content:center; align-items:center; padding:20px; }
+  #lightbox.open { display:flex; }
+  #lightbox img { max-width:100%; max-height:100%; border-radius:6px; }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ===================== LISTA DE CONVERSAS ===================== -->
+  <div id="screen-list">
+    <div id="list-header">
+      <div id="list-header-top">
+        <div id="list-title">Conversas</div>
+        <button class="icon-btn" id="btn-refresh" title="Atualizar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+        </button>
+      </div>
+      <div id="search-wrap">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input id="search-input" placeholder="Pesquisar">
+      </div>
+      <div id="chips">
+        <button class="chip active" data-f="tudo">Tudo</button>
+        <button class="chip" data-f="naolidas">Não lidas <span id="chip-count"></span></button>
+        <button class="chip chip-enc" data-f="encaminhadas">🚩 Encaminhadas <span id="chip-count-enc"></span></button>
+      </div>
+    </div>
+
+    <div id="loading-state">
+      <div class="spinner"></div>
+      <div class="state-sub">Carregando conversas…</div>
+    </div>
+
+    <div id="error-state">
+      <div class="state-icon">⚠️</div>
+      <div class="state-title">Não consegui carregar</div>
+      <div class="state-sub" id="error-msg">Verifique a conexão e tente de novo.</div>
+      <button class="state-btn" id="btn-error-retry">Tentar de novo</button>
+    </div>
+
+    <div id="empty-state">
+      <div class="state-icon">💬</div>
+      <div class="state-title">Nenhuma conversa ainda</div>
+      <div class="state-sub">Assim que um cliente mandar mensagem pro bot, ela aparece aqui.</div>
+    </div>
+
+    <div id="client-list" style="display:none"></div>
+  </div>
+
+  <!-- ===================== CONVERSA ===================== -->
+  <div id="screen-chat">
+    <div id="chat-header">
+      <button id="chat-back" title="Voltar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"/></svg>
+      </button>
+      <div class="chat-header-avatar" id="chat-avatar"></div>
+      <div class="chat-header-info">
+        <div class="chat-header-name" id="chat-name">—</div>
+        <div class="chat-header-sub" id="chat-sub">—</div>
+      </div>
+      <button class="icon-btn" id="chat-edit-pencil" title="Editar contato">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      </button>
+      <button class="icon-btn" id="btn-refresh-chat" title="Atualizar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/></svg>
+      </button>
+    </div>
+    <div id="chat-body">
+      <div id="wallpaper"></div>
+      <div id="messages"></div>
+      <button id="btn-down" title="Ir para a última mensagem">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+    </div>
+    <div id="chat-input-bar">
+      <textarea id="chat-input" placeholder="Mensagem" rows="1"></textarea>
+      <button id="chat-send" title="Enviar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- ===================== MODAL EDITAR CONTATO ===================== -->
+<div id="rename-overlay">
+  <div id="rename-box">
+    <h2>Editar contato</h2>
+    <p id="rename-phone-label">—</p>
+    <div id="rename-error"></div>
+    <span class="cfg-label">Nome</span>
+    <input class="cfg-input" id="rename-input" placeholder="Nome do cliente" maxlength="80">
+    <div class="cfg-btns">
+      <button id="rename-cancel">Cancelar</button>
+      <button id="rename-save">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<div id="lightbox"><img id="lightbox-img" src="" alt="mídia ampliada"></div>
+
+<script>
+(function () {
+  "use strict";
+
+  var cfg = {
+    url: "https://vpeyqgijajywgswmezlh.supabase.co",
+    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ",
+    // MESMA URL do webhook do WhatsApp (a que está configurada no Meta for
+    // Developers) — a resposta manual passa pela mesma function do index.ts.
+    enviarUrl: "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/COLOQUE_AQUI_O_NOME_DA_FUNCTION_DO_WEBHOOK",
+    // Mesmo valor colocado na secret ADMIN_TOKEN da function. Sem isso, qualquer
+    // um que descobrisse a URL da function conseguiria mandar zap em nome da loja.
+    adminToken: "COLOQUE_AQUI_O_MESMO_VALOR_DA_SECRET_ADMIN_TOKEN"
+  };
+  var LIDAS_KEY = "reicoxinha_lidas"; // phone -> data da última mensagem já lida (só neste aparelho)
+  var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
+  var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count, naoLidas }
+  var pendentesMap = {};  // phone -> { motivo, criado_em } — conversas que a IA não conseguiu resolver sozinha
+  var currentPhone = null;
+  var colunasLista = "phone,role,conteudo,created_at,midia_mime";
+  var ultimoVisto = null; // created_at da mensagem mais recente já carregada
+  var lidas = {};
+  var primeiraVez = false;
+  var filtroAtual = "tudo";
+
+  var AVATAR = '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="9.2" r="4.2"/><path d="M3.2 24c0-5 3.9-8.4 8.8-8.4s8.8 3.4 8.8 8.4z"/></svg>';
+  var TICKS = '<svg class="ticks" viewBox="0 0 16 11" width="16" height="11" aria-hidden="true"><path d="M1.2 5.9 4.2 8.9 10.4 1.4M5.9 8.4 6.7 9.2 12.9 1.4" fill="none" stroke="#53BDEB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
+  // ---------- helpers ----------
+  function headers() {
+    return { apikey: cfg.key, Authorization: "Bearer " + cfg.key, "Content-Type": "application/json" };
+  }
+  function formatarTelefone(numero) {
+    var n = String(numero || "").replace(/\D/g, "");
+    if (n.length === 11) return "(" + n.slice(0, 2) + ") " + n.slice(2, 7) + "-" + n.slice(7);
+    if (n.length === 10) return "(" + n.slice(0, 2) + ") " + n.slice(2, 6) + "-" + n.slice(6);
+    return n;
+  }
+  function horaCurta(iso) {
+    var d = new Date(iso);
+    return d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function inicioDoDia(d) { return new Date(d.getFullYear(), d.getMonth(), d.getDate()); }
+  function diasAtras(iso) { return Math.round((inicioDoDia(new Date()) - inicioDoDia(new Date(iso))) / 86400000); }
+  function maiuscula(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+  // Separador de dia dentro da conversa: Hoje / Ontem / dia da semana / data por extenso
+  function dataLabel(iso) {
+    var n = diasAtras(iso);
+    var d = new Date(iso);
+    if (n <= 0) return "Hoje";
+    if (n === 1) return "Ontem";
+    if (n < 7) return maiuscula(d.toLocaleDateString("pt-BR", { weekday: "long" }));
+    return d.toLocaleDateString("pt-BR", { day: "numeric", month: "long", year: "numeric" });
+  }
+  // Data na lista: hora (hoje) / Ontem / dia da semana / dd/mm/aaaa
+  function listaLabel(iso) {
+    var n = diasAtras(iso);
+    var d = new Date(iso);
+    if (n <= 0) return horaCurta(iso);
+    if (n === 1) return "Ontem";
+    if (n < 7) return maiuscula(d.toLocaleDateString("pt-BR", { weekday: "long" }));
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" });
+  }
+  function escapeHtml(s) {
+    return String(s || "").replace(/[&<>"']/g, function (c) {
+      return { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c];
+    });
+  }
+  // Formatação do WhatsApp: *negrito*  _itálico_  ~tachado~  e links clicáveis
+  var MARCAS = [
+    { re: /(^|[^\w*])\*([^*\n]+?)\*(?![\w*])/g, tag: "strong" },
+    { re: /(^|[^\w_])_([^_\n]+?)_(?![\w_])/g, tag: "em" },
+    { re: /(^|[^\w~])~([^~\n]+?)~(?![\w~])/g, tag: "s" }
+  ];
+  function aplicarMarcas(t, html) {
+    MARCAS.forEach(function (mk) {
+      t = t.replace(mk.re, function (m, pre, inner) {
+        if (/^\s|\s$/.test(inner)) return m;
+        return html ? pre + "<" + mk.tag + ">" + inner + "</" + mk.tag + ">" : pre + inner;
+      });
+    });
+    return t;
+  }
+  function formatarWpp(s) {
+    var partes = escapeHtml(s).split(/(https?:\/\/[^\s<]+)/g);
+    return partes.map(function (p, i) {
+      return i % 2 ? '<a class="lnk" href="' + p + '" target="_blank" rel="noopener">' + p + '</a>' : aplicarMarcas(p, true);
+    }).join("");
+  }
+
+  // ---------- rótulo das mídias: (foto), (pdf), (áudio)... ----------
+  function rotuloMidia(mime, conteudo) {
+    var t = String(mime || "").toLowerCase();
+    if (t.indexOf("pdf") !== -1) return "(pdf)";
+    if (t.indexOf("image") === 0) return "(foto)";
+    if (t.indexOf("audio") === 0) return "(áudio)";
+    if (t.indexOf("video") === 0) return "(vídeo)";
+    if (t) return "(arquivo)";
+    // mensagens antigas (sem mídia salva) que guardaram só o texto lido do comprovante
+    if (/^Comprovante Pix/i.test(String(conteudo || ""))) return "(comprovante)";
+    return "";
+  }
+  // Texto mostrado no balão / na lista: mídia do cliente aparece só como (foto), (pdf)...
+  // No áudio, o rótulo vem acompanhado da transcrição.
+  function textoExibido(m) {
+    var r = m.role === "user" ? rotuloMidia(m.midia_mime, m.conteudo) : "";
+    if (!r) return m.conteudo || "";
+    if (r === "(áudio)" && m.conteudo && m.conteudo !== r) return r + "\n" + m.conteudo;
+    return r;
+  }
+
+  // ---------- mensagens lidas (bolinha verde de não lidas) ----------
+  function carregarLidas() {
+    try {
+      var raw = localStorage.getItem(LIDAS_KEY);
+      if (raw) lidas = JSON.parse(raw) || {};
+      else primeiraVez = true; // primeira abertura: tudo que já existe conta como lido
+    } catch (e) { lidas = {}; }
+  }
+  function salvarLidas() {
+    try { localStorage.setItem(LIDAS_KEY, JSON.stringify(lidas)); } catch (e) {}
+  }
+  function marcarLida(phone) {
+    var g = groupsByPhone[phone];
+    if (!g) return;
+    g.naoLidas = 0;
+    lidas[phone] = g.lastTime;
+    salvarLidas();
+    // Sincroniza com o servidor (tabela clientes) pra funcionar em qualquer
+    // aparelho — exatamente como o "lido" do WhatsApp sincroniza entre celular
+    // e web. Se o cliente ainda não tiver linha em "clientes", o PATCH não
+    // altera nada e é ignorado silenciosamente.
+    fetch(cfg.url + "/rest/v1/clientes?phone=eq." + encodeURIComponent(phone), {
+      method: "PATCH",
+      headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+      body: JSON.stringify({ admin_lida_em: g.lastTime })
+    }).catch(function () {});
+  }
+
+  // ---------- conversas encaminhadas (aba "Encaminhadas") ----------
+  function carregarPendentes() {
+    return fetch(cfg.url + "/rest/v1/conversas_pendentes?select=phone,motivo,criado_em", { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        pendentesMap = {};
+        (rows || []).forEach(function (p) { pendentesMap[p.phone] = p; });
+      })
+      .catch(function () { pendentesMap = {}; });
+  }
+  function resolverConversaPendente(phone) {
+    if (!pendentesMap[phone]) return;
+    delete pendentesMap[phone];
+    fetch(cfg.url + "/rest/v1/conversas_pendentes?phone=eq." + encodeURIComponent(phone), {
+      method: "DELETE",
+      headers: headers()
+    }).catch(function () {});
+  }
+
+  // ---------- editar contato (nome) ----------
+  var renameOverlay = document.getElementById("rename-overlay");
+  var renameInput = document.getElementById("rename-input");
+  var renamePhoneLabel = document.getElementById("rename-phone-label");
+  var renameError = document.getElementById("rename-error");
+  var renamePhoneAtual = null;
+
+  function abrirRename(phone) {
+    renamePhoneAtual = phone;
+    renamePhoneLabel.textContent = formatarTelefone(phone);
+    renameInput.value = clientesMap[phone] || "";
+    renameError.style.display = "none";
+    renameOverlay.classList.add("open");
+    setTimeout(function () { renameInput.focus(); }, 50);
+  }
+  function fecharRename() { renameOverlay.classList.remove("open"); }
+  document.getElementById("rename-cancel").onclick = fecharRename;
+  document.getElementById("chat-edit-pencil").onclick = function () {
+    if (currentPhone) abrirRename(currentPhone);
+  };
+
+  document.getElementById("rename-save").onclick = function () {
+    var nome = renameInput.value.trim();
+    if (!nome) {
+      renameError.textContent = "Digita um nome.";
+      renameError.style.display = "block";
+      return;
+    }
+    var phone = renamePhoneAtual;
+    var jaTemCliente = Object.prototype.hasOwnProperty.call(clientesMap, phone);
+    var btnSalvar = document.getElementById("rename-save");
+    btnSalvar.textContent = "Salvando…";
+    btnSalvar.disabled = true;
+
+    var pedido;
+    if (jaTemCliente) {
+      // já existe linha em "clientes" pra esse telefone → atualiza o nome
+      pedido = fetch(cfg.url + "/rest/v1/clientes?phone=eq." + encodeURIComponent(phone), {
+        method: "PATCH",
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ name: nome })
+      });
+    } else {
+      // cliente só apareceu em conversas_bot ainda → cria a linha em "clientes"
+      pedido = fetch(cfg.url + "/rest/v1/clientes", {
+        method: "POST",
+        headers: Object.assign({ Prefer: "return=minimal" }, headers()),
+        body: JSON.stringify({ phone: phone, name: nome, debt: 0, tickets: 0, diamantes: 0 })
+      });
+    }
+
+    pedido.then(function (r) {
+      if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+      clientesMap[phone] = nome;
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      fecharRename();
+      renderLista();
+      if (currentPhone === phone) {
+        document.getElementById("chat-name").textContent = nome;
+      }
+    }).catch(function (err) {
+      btnSalvar.textContent = "Salvar";
+      btnSalvar.disabled = false;
+      renameError.textContent = "Não consegui salvar: " + err.message;
+      renameError.style.display = "block";
+    });
+  };
+
+  // ---------- telas ----------
+  var screenList = document.getElementById("screen-list");
+  var screenChat = document.getElementById("screen-chat");
+  function irParaChat() {
+    screenChat.classList.add("visible");
+    history.pushState({ tela: "chat" }, "", "#chat");
+  }
+  function voltarParaLista() {
+    screenChat.classList.remove("visible");
+    currentPhone = null;
+    renderLista();
+  }
+  document.getElementById("chat-back").onclick = function () {
+    if (history.state && history.state.tela === "chat") {
+      history.back();
+    } else {
+      voltarParaLista();
+    }
+  };
+  window.addEventListener("popstate", function () {
+    if (screenChat.classList.contains("visible")) {
+      voltarParaLista();
+    }
+  });
+
+  // ---------- estados da lista ----------
+  var loadingState = document.getElementById("loading-state");
+  var errorState = document.getElementById("error-state");
+  var emptyState = document.getElementById("empty-state");
+  var clientListEl = document.getElementById("client-list");
+  var errorMsgEl = document.getElementById("error-msg");
+
+  function mostrarEstado(nome) {
+    loadingState.style.display = nome === "loading" ? "flex" : "none";
+    errorState.style.display = nome === "error" ? "flex" : "none";
+    emptyState.style.display = nome === "empty" ? "flex" : "none";
+    clientListEl.style.display = nome === "list" ? "block" : "none";
+  }
+  document.getElementById("btn-error-retry").onclick = function () { carregarClientes(); };
+
+  // ---------- carregar conversas (agrupando conversas_bot por phone) ----------
+  function carregarClientes() {
+    mostrarEstado("loading");
+    // O Supabase devolve no máximo 1000 linhas por pedido (mesmo com limit maior),
+    // então a lista é montada em páginas de 1000 até acabarem as mensagens.
+    var urlLista = cfg.url + "/rest/v1/conversas_bot?";
+    var TAM_PAGINA = 1000;
+    var MAX_PAGINAS = 40; // segurança: até 40.000 mensagens
+    var todas = [];
+    function buscarPagina(pagina) {
+      var qs = "select=" + colunasLista + "&order=created_at.desc&limit=" + TAM_PAGINA + "&offset=" + (pagina * TAM_PAGINA);
+      return fetch(urlLista + qs, { headers: headers() }).then(function (r) {
+        // sem a coluna midia_mime, repete a busca sem ela
+        if (!r.ok && pagina === 0 && colunasLista.indexOf("midia_mime") !== -1) {
+          colunasLista = "phone,role,conteudo,created_at";
+          return buscarPagina(0);
+        }
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json().then(function (rows) {
+          todas = todas.concat(rows);
+          if (rows.length === TAM_PAGINA && pagina + 1 < MAX_PAGINAS) return buscarPagina(pagina + 1);
+        });
+      });
+    }
+    buscarPagina(0)
+      .then(function () {
+        // Busca nomes + "lido até" do servidor ANTES de contar as não lidas,
+        // pra sincronizar com o que já foi lido em outro aparelho (como no WhatsApp).
+        return carregarNomesClientes();
+      })
+      .then(function () {
+        groupsByPhone = {};
+        todas.forEach(function (m) {
+          var g = groupsByPhone[m.phone];
+          if (!g) {
+            g = groupsByPhone[m.phone] = {
+              lastTime: m.created_at,
+              lastRole: m.role,
+              lastMsg: textoExibido(m),
+              count: 0,
+              naoLidas: 0
+            };
+          } else if (new Date(m.created_at) > new Date(g.lastTime)) {
+            // garante que a "última mensagem" é sempre a mais recente
+            g.lastTime = m.created_at;
+            g.lastRole = m.role;
+            g.lastMsg = textoExibido(m);
+          }
+          g.count++;
+          // mensagem do cliente depois da última vez que a conversa foi aberta = não lida
+          if (m.role === "user" && !primeiraVez) {
+            var lim = lidas[m.phone];
+            if (!lim || new Date(m.created_at) > new Date(lim)) g.naoLidas++;
+          }
+        });
+        if (primeiraVez) {
+          Object.keys(groupsByPhone).forEach(function (p) { lidas[p] = groupsByPhone[p].lastTime; });
+          salvarLidas();
+          primeiraVez = false;
+        }
+        if (currentPhone) marcarLida(currentPhone);
+        ultimoVisto = todas.length ? todas[0].created_at : "1970-01-01T00:00:00+00:00";
+        return carregarPendentes();
+      })
+      .then(renderLista)
+      .catch(function (err) {
+        errorMsgEl.textContent = err.message || "Erro desconhecido.";
+        mostrarEstado("error");
+      });
+  }
+
+  function carregarNomesClientes() {
+    // Tenta enriquecer com nome da tabela clientes; se falhar (tabela não existe,
+    // permissão negada etc.), segue mostrando só o telefone — não quebra a lista.
+    // admin_lida_em é o "lido até" salvo no servidor: sincroniza a bolinha de não
+    // lidas entre aparelhos diferentes (celular, computador...), como no WhatsApp.
+    return fetch(cfg.url + "/rest/v1/clientes?select=phone,name,admin_lida_em", { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        clientesMap = {};
+        var mudouLocal = false;
+        (rows || []).forEach(function (c) {
+          clientesMap[c.phone] = c.name;
+          if (c.admin_lida_em && (!lidas[c.phone] || new Date(c.admin_lida_em) > new Date(lidas[c.phone]))) {
+            lidas[c.phone] = c.admin_lida_em;
+            mudouLocal = true;
+          }
+        });
+        if (mudouLocal) salvarLidas();
+      })
+      .catch(function () { clientesMap = {}; });
+  }
+
+  function renderLista() {
+    var phones = Object.keys(groupsByPhone);
+    if (phones.length === 0) { mostrarEstado("empty"); return; }
+    // mais recente primeiro, como no WhatsApp
+    phones.sort(function (a, b) {
+      return new Date(groupsByPhone[b].lastTime) - new Date(groupsByPhone[a].lastTime);
+    });
+    var termo = document.getElementById("search-input").value.trim().toLowerCase();
+    var digitos = termo.replace(/\D/g, "");
+    var conversasNaoLidas = 0;
+    var conversasEncaminhadas = 0;
+    phones.forEach(function (p) {
+      if (groupsByPhone[p].naoLidas > 0) conversasNaoLidas++;
+      if (pendentesMap[p]) conversasEncaminhadas++;
+    });
+    document.getElementById("chip-count").textContent = conversasNaoLidas ? String(conversasNaoLidas) : "";
+    document.getElementById("chip-count-enc").textContent = conversasEncaminhadas ? String(conversasEncaminhadas) : "";
+    document.title = (conversasNaoLidas ? "(" + conversasNaoLidas + ") " : "") + "Conversas — Rei da Coxinha";
+
+    var html = "";
+    phones.forEach(function (phone) {
+      var g = groupsByPhone[phone];
+      var pend = pendentesMap[phone];
+      if (filtroAtual === "naolidas" && !g.naoLidas) return;
+      if (filtroAtual === "encaminhadas" && !pend) return;
+      var nome = clientesMap[phone] || formatarTelefone(phone);
+      if (termo && nome.toLowerCase().indexOf(termo) === -1 && !(digitos && phone.indexOf(digitos) !== -1)) return;
+      var naoLida = g.naoLidas > 0;
+      // Na aba Encaminhadas, mostra o motivo do encaminhamento no lugar da última mensagem
+      var previaBase = (pend && filtroAtual === "encaminhadas") ? pend.motivo : String(g.lastMsg || "").replace(/\n/g, " ");
+      var previa = aplicarMarcas(previaBase, false).slice(0, 90);
+      var previewCls = "client-preview" + (pend && filtroAtual === "encaminhadas" ? " pend-motivo" : "");
+      html += ''
+        + '<div class="client-row' + (naoLida ? ' unread' : '') + '" data-phone="' + phone + '">'
+        +   '<div class="client-avatar">' + AVATAR + '</div>'
+        +   '<div class="client-mid">'
+        +     '<div class="client-top-line">'
+        +       '<div class="client-name">' + (pend ? '<span class="pend-flag" title="Precisa de atenção">🚩</span>' : '') + escapeHtml(nome) + '</div>'
+        +       '<div class="client-time">' + listaLabel(g.lastTime) + '</div>'
+        +     '</div>'
+        +     '<div class="client-bottom-line">'
+        +       '<div class="' + previewCls + '">' + (previewCls.indexOf("pend-motivo") === -1 && g.lastRole !== "user" ? TICKS : '') + '<span>' + escapeHtml(previa) + '</span></div>'
+        +       (naoLida ? '<div class="badge">' + g.naoLidas + '</div>' : '')
+        +     '</div>'
+        +   '</div>'
+        + '</div>';
+    });
+    if (!html) {
+      var vazioMsg = filtroAtual === "encaminhadas" && !termo ? "Nenhuma conversa encaminhada" :
+        (filtroAtual === "naolidas" && !termo ? "Nenhuma conversa não lida" : "Nenhum resultado");
+      html = '<div class="lista-vazia">' + vazioMsg + '</div>';
+    }
+    var rolagem = clientListEl.scrollTop;
+    clientListEl.innerHTML = html;
+    mostrarEstado("list");
+    clientListEl.scrollTop = rolagem;
+    Array.prototype.forEach.call(clientListEl.querySelectorAll(".client-row"), function (row) {
+      row.onclick = function () { abrirChat(row.getAttribute("data-phone")); };
+    });
+  }
+
+  document.getElementById("search-input").oninput = function () {
+    if (clientListEl.style.display !== "none") renderLista();
+  };
+  Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (chip) {
+    chip.onclick = function () {
+      filtroAtual = chip.getAttribute("data-f");
+      Array.prototype.forEach.call(document.querySelectorAll(".chip"), function (c) {
+        c.classList.toggle("active", c === chip);
+      });
+      renderLista();
+    };
+  });
+  document.getElementById("btn-refresh").onclick = function (e) {
+    e.currentTarget.classList.add("spin");
+    setTimeout(function () { e.currentTarget.classList.remove("spin"); }, 600);
+    carregarClientes();
+  };
+
+  // ---------- conversa de um cliente ----------
+  var messagesEl = document.getElementById("messages");
+  var btnDown = document.getElementById("btn-down");
+  function abrirChat(phone) {
+    currentPhone = phone;
+    var nome = clientesMap[phone] || formatarTelefone(phone);
+    document.getElementById("chat-avatar").innerHTML = AVATAR;
+    document.getElementById("chat-name").textContent = nome;
+    document.getElementById("chat-sub").textContent = formatarTelefone(phone);
+    marcarLida(phone);
+    resolverConversaPendente(phone); // Jeff abriu a conversa: sai da aba Encaminhadas
+    document.getElementById("chat-input").value = "";
+    document.getElementById("chat-input").style.height = "auto";
+    irParaChat();
+    carregarMensagens(phone);
+  }
+  document.getElementById("btn-refresh-chat").onclick = function () {
+    if (currentPhone) carregarMensagens(currentPhone);
+  };
+  messagesEl.onscroll = function () {
+    var distancia = messagesEl.scrollHeight - messagesEl.scrollTop - messagesEl.clientHeight;
+    btnDown.classList.toggle("show", distancia > 300);
+  };
+  btnDown.onclick = function () {
+    messagesEl.scrollTo({ top: messagesEl.scrollHeight, behavior: "smooth" });
+  };
+
+  function carregarMensagens(phone, silencioso) {
+    if (!silencioso) messagesEl.innerHTML = '<div style="display:flex;justify-content:center;padding:30px;"><div class="spinner"></div></div>';
+    var qsComMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at,midia_base64,midia_mime&order=created_at.desc&limit=500";
+    var qsSemMidia = "phone=eq." + encodeURIComponent(phone) + "&select=role,conteudo,created_at&order=created_at.desc&limit=500";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qsComMidia, { headers: headers() })
+      .then(function (r) {
+        // Se as colunas midia_base64/midia_mime ainda não existirem na tabela,
+        // repete a busca sem elas em vez de quebrar a tela toda.
+        if (!r.ok) return fetch(cfg.url + "/rest/v1/conversas_bot?" + qsSemMidia, { headers: headers() });
+        return r;
+      })
+      .then(function (r) {
+        if (!r.ok) return r.json().then(function (j) { throw new Error(j.message || ("HTTP " + r.status)); });
+        return r.json();
+      })
+      .then(function (msgs) {
+        if (phone !== currentPhone) return; // trocou de conversa enquanto carregava
+        // busca as 500 mais recentes e inverte: a mais nova fica embaixo, como no WhatsApp
+        msgs = (msgs || []).slice().reverse();
+        var topo = messagesEl.scrollTop;
+        var perto = messagesEl.scrollHeight - topo - messagesEl.clientHeight < 150;
+        renderMensagens(msgs);
+        // atualização automática: se a pessoa estava lendo mensagens antigas, não puxa a tela pra baixo
+        if (silencioso && !perto) messagesEl.scrollTop = topo;
+      })
+      .catch(function (err) {
+        if (silencioso) return;
+        messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Erro ao carregar: ' + escapeHtml(err.message) + '</div>';
+      });
+  }
+
+  function renderMensagens(msgs) {
+    if (!msgs || msgs.length === 0) {
+      messagesEl.innerHTML = '<div style="padding:30px;text-align:center;color:#8696A0;font-size:13px;">Nenhuma mensagem encontrada.</div>';
+      return;
+    }
+    var html = "";
+    var diaAtual = null;
+    var roleAnterior = null;
+    msgs.forEach(function (m) {
+      var chaveDia = new Date(m.created_at).toDateString();
+      if (chaveDia !== diaAtual) {
+        html += '<div class="date-pill"><span>' + escapeHtml(dataLabel(m.created_at)) + '</span></div>';
+        diaAtual = chaveDia;
+        roleAnterior = null;
+      }
+      var role = m.role === "user" ? "user" : "assistant";
+      var primeira = role !== roleAnterior; // só a 1ª bolha de uma sequência tem o "rabinho"
+      roleAnterior = role;
+      var midiaHtml = "";
+      if (m.midia_base64 && m.midia_mime) {
+        var mimeLimpo = String(m.midia_mime).split(";")[0].trim();
+        if (mimeLimpo.indexOf("audio") === 0) {
+          midiaHtml = '<audio class="bubble-audio" controls preload="none" src="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '"></audio>';
+        } else if (mimeLimpo.indexOf("pdf") !== -1) {
+          midiaHtml = '<a class="bubble-pdf" href="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '" target="_blank" rel="noopener">'
+            + '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>'
+            + '<span>Ver PDF</span></a>';
+        } else {
+          midiaHtml = '<img class="bubble-img" src="data:' + mimeLimpo + ';base64,' + m.midia_base64 + '" alt="mídia enviada">';
+        }
+      }
+      var cls = role + (primeira ? " first" : "");
+      html += ''
+        + '<div class="msg-row ' + cls + '">'
+        +   '<div class="bubble ' + cls + '">'
+        +     midiaHtml
+        +     '<div class="bubble-text">' + formatarWpp(textoExibido(m))
+        +       '<span class="bubble-time">' + horaCurta(m.created_at) + (role === "assistant" ? TICKS : '') + '</span></div>'
+        +   '</div>'
+        + '</div>';
+    });
+    messagesEl.innerHTML = html;
+    messagesEl.scrollTop = messagesEl.scrollHeight;
+    Array.prototype.forEach.call(messagesEl.querySelectorAll(".bubble-img"), function (img) {
+      img.onclick = function () {
+        document.getElementById("lightbox-img").src = img.src;
+        document.getElementById("lightbox").classList.add("open");
+      };
+    });
+  }
+  document.getElementById("lightbox").onclick = function () {
+    this.classList.remove("open");
+  };
+
+  // ---------- resposta manual do Jeff (igual mandar no zap normal) ----------
+  var chatInput = document.getElementById("chat-input");
+  var chatSend = document.getElementById("chat-send");
+  var SPINNER_HTML = '<div class="spinner"></div>';
+  var SEND_ICON_HTML = chatSend.innerHTML;
+
+  // cresce até um limite conforme digita, igual o campo do WhatsApp
+  chatInput.oninput = function () {
+    chatInput.style.height = "auto";
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 110) + "px";
+  };
+  chatInput.onkeydown = function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      enviarResposta();
+    }
+  };
+  chatSend.onclick = enviarResposta;
+
+  function enviarResposta() {
+    var texto = chatInput.value.trim();
+    if (!texto || !currentPhone || chatSend.disabled) return;
+    var phone = currentPhone;
+    chatSend.disabled = true;
+    chatSend.innerHTML = SPINNER_HTML;
+    fetch(cfg.enviarUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: cfg.key,
+        Authorization: "Bearer " + cfg.key,
+        "x-admin-token": cfg.adminToken
+      },
+      body: JSON.stringify({ phone: phone, texto: texto })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.j.erro || "Falha ao enviar");
+        chatInput.value = "";
+        chatInput.style.height = "auto";
+        if (currentPhone === phone) carregarMensagens(phone, true);
+      })
+      .catch(function (err) {
+        alert("Não consegui enviar: " + err.message);
+      })
+      .then(function () {
+        chatSend.disabled = false;
+        chatSend.innerHTML = SEND_ICON_HTML;
+        chatInput.focus();
+      });
+  }
+
+  // ---------- atualização automática (como o WhatsApp) ----------
+  // A cada 15 s busca só as mensagens novas; a conversa que recebeu mensagem sobe pro topo.
+  var POLL_MS = 15000;
+  var verificando = false;
+  function verificarNovas() {
+    if (verificando || document.hidden || !ultimoVisto) return;
+    verificando = true;
+    var qs = "select=" + colunasLista + "&created_at=gt." + encodeURIComponent(ultimoVisto) + "&order=created_at.asc&limit=1000";
+    fetch(cfg.url + "/rest/v1/conversas_bot?" + qs, { headers: headers() })
+      .then(function (r) { return r.ok ? r.json() : []; })
+      .then(function (rows) {
+        if (!rows || !rows.length) return;
+        var telefoneNovo = false;
+        var chatAtualMudou = false;
+        rows.forEach(function (m) {
+          var g = groupsByPhone[m.phone];
+          if (!g) { g = groupsByPhone[m.phone] = { count: 0, naoLidas: 0 }; telefoneNovo = true; }
+          g.lastTime = m.created_at;
+          g.lastRole = m.role;
+          g.lastMsg = textoExibido(m);
+          g.count++;
+          ultimoVisto = m.created_at;
+          if (m.phone === currentPhone) {
+            chatAtualMudou = true;
+            lidas[m.phone] = m.created_at; // conversa aberta: já está lendo
+          } else if (m.role === "user") {
+            g.naoLidas++;
+          }
+        });
+        salvarLidas();
+        var nomes = telefoneNovo ? carregarNomesClientes() : Promise.resolve();
+        return nomes.then(carregarPendentes).then(function () {
+          renderLista();
+          if (chatAtualMudou) carregarMensagens(currentPhone, true);
+        });
+      })
+      .catch(function () {})
+      .then(function () { verificando = false; });
+  }
+  setInterval(verificarNovas, POLL_MS);
+  // Atualiza a aba Encaminhadas independente de mensagem nova ter chegado ou não.
+  setInterval(function () { if (!document.hidden) carregarPendentes().then(renderLista); }, POLL_MS);
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) verificarNovas(); });
+
+  // ---------- boot ----------
+  carregarLidas();
+  carregarClientes();
+})();
+</script>
+</body>
+</html>
