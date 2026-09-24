@@ -243,9 +243,9 @@
   var cfg = {
     url: "https://vpeyqgijajywgswmezlh.supabase.co",
     key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ",
-    // MESMA URL do webhook do WhatsApp (a que está configurada no Meta for
-    // Developers) — a resposta manual passa pela mesma function do index.ts.
-    enviarUrl: "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/COLOQUE_AQUI_O_NOME_DA_FUNCTION_DO_WEBHOOK",
+    // MESMA URL do webhook do WhatsApp — a resposta manual passa pela
+    // mesma function do index.ts.
+    enviarUrl: "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/whatsapp",
     // Mesmo valor colocado na secret ADMIN_TOKEN da function. Sem isso, qualquer
     // um que descobrisse a URL da function conseguiria mandar zap em nome da loja.
     adminToken: "COLOQUE_AQUI_O_MESMO_VALOR_DA_SECRET_ADMIN_TOKEN"
