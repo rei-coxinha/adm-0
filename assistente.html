@@ -109,6 +109,16 @@
   #btn-down.show { display:flex; }
   #btn-down svg { width:22px; height:22px; }
 
+  /* ── BARRA DE ENVIO (resposta manual do Jeff) ── */
+  #chat-input-bar { flex-shrink:0; display:flex; align-items:flex-end; gap:8px; padding:8px 10px calc(8px + env(safe-area-inset-bottom)); background:#0B141A; }
+  #chat-input { flex:1; background:#1F2C34; border:none; border-radius:22px; padding:11px 16px; color:#E9EDEF; font-size:15px; font-family:inherit; outline:none; resize:none; max-height:110px; line-height:20px; }
+  #chat-input::placeholder { color:#8696A0; }
+  #chat-send { width:44px; height:44px; border-radius:50%; border:none; background:#25D366; color:#04120D; display:flex; align-items:center; justify-content:center; cursor:pointer; flex-shrink:0; transition:opacity .15s, transform .1s; }
+  #chat-send:active { transform:scale(.92); }
+  #chat-send:disabled { opacity:.4; cursor:default; }
+  #chat-send svg { width:20px; height:20px; margin-left:1px; }
+  #chat-send .spinner { width:18px; height:18px; border-width:2px; margin:0; }
+
   /* ── MODAL EDITAR CONTATO ── */
   #rename-overlay { display:none; position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:110; justify-content:center; align-items:flex-end; }
   #rename-overlay.open { display:flex; }
@@ -199,6 +209,12 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
       </button>
     </div>
+    <div id="chat-input-bar">
+      <textarea id="chat-input" placeholder="Mensagem" rows="1"></textarea>
+      <button id="chat-send" title="Enviar">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg>
+      </button>
+    </div>
   </div>
 
 </div>
@@ -224,7 +240,16 @@
 (function () {
   "use strict";
 
-  var cfg = { url: "https://vpeyqgijajywgswmezlh.supabase.co", key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ" };
+  var cfg = {
+    url: "https://vpeyqgijajywgswmezlh.supabase.co",
+    key: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZwZXlxZ2lqYWp5d2dzd21lemxoIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzEyNTM1MDIsImV4cCI6MjA4NjgyOTUwMn0.LA5Cbof7IKWAA7l8YbCuPzANpCy0rX_Dro4l9fcDgoQ",
+    // MESMA URL do webhook do WhatsApp (a que está configurada no Meta for
+    // Developers) — a resposta manual passa pela mesma function do index.ts.
+    enviarUrl: "https://vpeyqgijajywgswmezlh.supabase.co/functions/v1/COLOQUE_AQUI_O_NOME_DA_FUNCTION_DO_WEBHOOK",
+    // Mesmo valor colocado na secret ADMIN_TOKEN da function. Sem isso, qualquer
+    // um que descobrisse a URL da function conseguiria mandar zap em nome da loja.
+    adminToken: "COLOQUE_AQUI_O_MESMO_VALOR_DA_SECRET_ADMIN_TOKEN"
+  };
   var LIDAS_KEY = "reicoxinha_lidas"; // phone -> data da última mensagem já lida (só neste aparelho)
   var clientesMap = {};   // phone -> nome (da tabela clientes, se existir)
   var groupsByPhone = {}; // phone -> { lastTime, lastRole, lastMsg, count, naoLidas }
@@ -661,6 +686,8 @@
     document.getElementById("chat-sub").textContent = formatarTelefone(phone);
     marcarLida(phone);
     resolverConversaPendente(phone); // Jeff abriu a conversa: sai da aba Encaminhadas
+    document.getElementById("chat-input").value = "";
+    document.getElementById("chat-input").style.height = "auto";
     irParaChat();
     carregarMensagens(phone);
   }
@@ -759,6 +786,58 @@
   document.getElementById("lightbox").onclick = function () {
     this.classList.remove("open");
   };
+
+  // ---------- resposta manual do Jeff (igual mandar no zap normal) ----------
+  var chatInput = document.getElementById("chat-input");
+  var chatSend = document.getElementById("chat-send");
+  var SPINNER_HTML = '<div class="spinner"></div>';
+  var SEND_ICON_HTML = chatSend.innerHTML;
+
+  // cresce até um limite conforme digita, igual o campo do WhatsApp
+  chatInput.oninput = function () {
+    chatInput.style.height = "auto";
+    chatInput.style.height = Math.min(chatInput.scrollHeight, 110) + "px";
+  };
+  chatInput.onkeydown = function (e) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      enviarResposta();
+    }
+  };
+  chatSend.onclick = enviarResposta;
+
+  function enviarResposta() {
+    var texto = chatInput.value.trim();
+    if (!texto || !currentPhone || chatSend.disabled) return;
+    var phone = currentPhone;
+    chatSend.disabled = true;
+    chatSend.innerHTML = SPINNER_HTML;
+    fetch(cfg.enviarUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        apikey: cfg.key,
+        Authorization: "Bearer " + cfg.key,
+        "x-admin-token": cfg.adminToken
+      },
+      body: JSON.stringify({ phone: phone, texto: texto })
+    })
+      .then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+      .then(function (res) {
+        if (!res.ok) throw new Error(res.j.erro || "Falha ao enviar");
+        chatInput.value = "";
+        chatInput.style.height = "auto";
+        if (currentPhone === phone) carregarMensagens(phone, true);
+      })
+      .catch(function (err) {
+        alert("Não consegui enviar: " + err.message);
+      })
+      .then(function () {
+        chatSend.disabled = false;
+        chatSend.innerHTML = SEND_ICON_HTML;
+        chatInput.focus();
+      });
+  }
 
   // ---------- atualização automática (como o WhatsApp) ----------
   // A cada 15 s busca só as mensagens novas; a conversa que recebeu mensagem sobe pro topo.
